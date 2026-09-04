@@ -19,6 +19,7 @@ from backend.app.schemas.graph import (
 )
 from backend.app.schemas.explanation import ExplanationResponseSchema
 from backend.app.schemas.financial_impact import FinancialImpactResponseSchema
+from backend.app.schemas.investigation_summary import ExecutiveInvestigationSummarySchema
 
 __all__ = [
     "AnomalySeverity",
@@ -36,4 +37,5 @@ __all__ = [
     "InvestigationGraphResponse",
     "ExplanationResponseSchema",
     "FinancialImpactResponseSchema",
+    "ExecutiveInvestigationSummarySchema",
 ]

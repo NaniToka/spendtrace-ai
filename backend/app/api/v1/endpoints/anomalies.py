@@ -11,11 +11,13 @@ from backend.app.schemas.root_cause import RootCauseResponseSchema
 from backend.app.schemas.graph import InvestigationGraphResponse
 from backend.app.schemas.explanation import ExplanationResponseSchema
 from backend.app.schemas.financial_impact import FinancialImpactResponseSchema
+from backend.app.schemas.investigation_summary import ExecutiveInvestigationSummarySchema
 from backend.app.services.anomaly_service import anomaly_service
 from backend.app.services.root_cause_service import root_cause_service
 from backend.app.services.graph_service import graph_service
 from backend.app.services.explanation_service import explanation_service
 from backend.app.services.financial_impact_service import financial_impact_service
+from backend.app.services.executive_summary_service import executive_summary_service
 
 router = APIRouter()
 
@@ -126,3 +128,11 @@ def get_anomaly_financial_impact(anomaly_id: str):
         return financial_impact_service.calculate_impact(None)
         
     return financial_impact_service.calculate_impact(anomaly)
+
+@router.get("/{anomaly_id}/investigation-summary", response_model=ExecutiveInvestigationSummarySchema)
+def get_executive_investigation_summary(anomaly_id: str):
+    """
+    Returns a unified executive dashboard summary for a given anomaly, combining
+    root causes, graphs, explanations, and financial impact.
+    """
+    return executive_summary_service.generate_summary(anomaly_id)

@@ -3,7 +3,7 @@ import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
 import { OverviewPage } from './pages/OverviewPage';
 import { AnomalySection } from './components/AnomalySection';
-import { RootCauseSection } from './components/RootCauseSection';
+import { ExecutiveDashboard } from './components/ExecutiveDashboard';
 import { fetchBilling, fetchHealth, fetchAnomalies, fetchAnomaliesSummary } from './services/api';
 import { BillingRecord } from './types/billing';
 import { HealthResponse } from './types/health';
@@ -103,7 +103,7 @@ export const App: React.FC = () => {
 
           {activeTab === 'rootcause' && (
             <div className="page-view">
-              <RootCauseSection
+              <ExecutiveDashboard
                 anomalies={anomalies}
                 selectedAnomalyId={selectedAnomalyId}
                 onSelectAnomaly={setSelectedAnomalyId}
