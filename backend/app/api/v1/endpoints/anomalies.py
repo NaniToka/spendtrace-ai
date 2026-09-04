@@ -8,8 +8,10 @@ from backend.app.schemas.anomaly import (
     AnomalySummaryResponseSchema,
 )
 from backend.app.schemas.root_cause import RootCauseResponseSchema
+from backend.app.schemas.graph import InvestigationGraphResponse
 from backend.app.services.anomaly_service import anomaly_service
 from backend.app.services.root_cause_service import root_cause_service
+from backend.app.services.graph_service import graph_service
 
 router = APIRouter()
 
@@ -64,6 +66,16 @@ def get_anomaly_root_causes(anomaly_id: str):
     Investigates and returns ranked root-cause candidates for a given cost anomaly.
     """
     result = root_cause_service.investigate_anomaly_by_id(anomaly_id)
+    if not result:
+        raise HTTPException(status_code=404, detail=f"Anomaly with ID '{anomaly_id}' not found.")
+    return result
+
+@router.get("/{anomaly_id}/investigation-graph", response_model=InvestigationGraphResponse)
+def get_anomaly_investigation_graph(anomaly_id: str):
+    """
+    Returns a causal evidence graph for a given cost anomaly.
+    """
+    result = graph_service.build_investigation_graph(anomaly_id)
     if not result:
         raise HTTPException(status_code=404, detail=f"Anomaly with ID '{anomaly_id}' not found.")
     return result

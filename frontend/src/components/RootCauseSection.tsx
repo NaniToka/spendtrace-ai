@@ -10,8 +10,11 @@ import {
 } from 'lucide-react';
 import { AnomalyItem } from '../types/anomaly';
 import { RootCauseResponse } from '../types/root_cause';
-import { fetchRootCauses } from '../services/api';
+import { InvestigationGraphResponse } from '../types/graph';
+import { fetchRootCauses, fetchInvestigationGraph } from '../services/api';
 import { AIExplanationSection } from './AIExplanationSection';
+import { InvestigationGraphView } from './InvestigationGraphView';
+import { InvestigationTimeline } from './InvestigationTimeline';
 
 interface RootCauseSectionProps {
   anomalies: AnomalyItem[];
@@ -26,6 +29,7 @@ export const RootCauseSection: React.FC<RootCauseSectionProps> = ({
 }) => {
   const [activeAnomalyId, setActiveAnomalyId] = useState<string>('');
   const [rootCauseData, setRootCauseData] = useState<RootCauseResponse | null>(null);
+  const [graphData, setGraphData] = useState<InvestigationGraphResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -45,10 +49,14 @@ export const RootCauseSection: React.FC<RootCauseSectionProps> = ({
     setLoading(true);
     setError(null);
 
-    fetchRootCauses(activeAnomalyId)
-      .then((data) => {
+    Promise.all([
+      fetchRootCauses(activeAnomalyId),
+      fetchInvestigationGraph(activeAnomalyId)
+    ])
+      .then(([rcData, gData]) => {
         if (isMounted) {
-          setRootCauseData(data);
+          setRootCauseData(rcData);
+          setGraphData(gData);
           setLoading(false);
         }
       })
@@ -154,6 +162,14 @@ export const RootCauseSection: React.FC<RootCauseSectionProps> = ({
           {/* AI Explanation Banner */}
           {rootCauseData.ai_explanation && (
             <AIExplanationSection explanation={rootCauseData.ai_explanation} />
+          )}
+
+          {/* Investigation Graph & Timeline */}
+          {graphData && (
+            <>
+              <InvestigationGraphView graph={graphData} />
+              <InvestigationTimeline graph={graphData} />
+            </>
           )}
 
           {/* Top Banner: Primary Suspected Cause & Signal */}

@@ -2,6 +2,7 @@ import { BillingResponse } from '../types/billing';
 import { HealthResponse } from '../types/health';
 import { AnomalyListResponse, AnomalySummaryResponse } from '../types/anomaly';
 import { RootCauseResponse } from '../types/root_cause';
+import { InvestigationGraphResponse } from '../types/graph';
 
 const API_BASE = '/api/v1';
 
@@ -44,6 +45,14 @@ export async function fetchRootCauses(anomalyId: string): Promise<RootCauseRespo
   const res = await fetch(`${API_BASE}/anomalies/${encodeURIComponent(anomalyId)}/root-causes`);
   if (!res.ok) {
     throw new Error(`Failed to fetch root causes for ${anomalyId}: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function fetchInvestigationGraph(anomalyId: string): Promise<InvestigationGraphResponse> {
+  const res = await fetch(`${API_BASE}/anomalies/${encodeURIComponent(anomalyId)}/investigation-graph`);
+  if (!res.ok) {
+    throw new Error(`Failed to fetch investigation graph for ${anomalyId}: ${res.status}`);
   }
   return res.json();
 }

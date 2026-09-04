@@ -701,3 +701,208 @@ body {
   color: var(--color-emerald);
   margin-top: 2px;
 }
+
+/* Investigation Graph */
+.investigation-graph-container {
+  background: rgba(15, 23, 42, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.graph-visual-area {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px 0;
+  overflow-x: auto;
+}
+
+.graph-flow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.graph-column {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.graph-arrow {
+  color: var(--text-muted);
+  font-size: 1.5rem;
+}
+
+.graph-node {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  padding: 12px 16px;
+  border-radius: 8px;
+  min-width: 180px;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.graph-node:hover {
+  border-color: var(--color-cyan);
+  box-shadow: 0 4px 12px rgba(6, 182, 212, 0.1);
+  transform: translateY(-2px);
+}
+
+.graph-node.selected {
+  border-color: var(--color-primary);
+  background: rgba(59, 130, 246, 0.1);
+  box-shadow: 0 0 0 1px var(--color-primary);
+}
+
+.node-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+}
+
+.node-type {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.node-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.node-details-panel {
+  margin-top: 24px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.metadata-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+.metadata-row:last-child {
+  border-bottom: none;
+}
+.metadata-key {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+.metadata-value {
+  color: var(--text-primary);
+  font-size: 0.85rem;
+}
+
+.edge-item {
+  background: rgba(255, 255, 255, 0.03);
+  padding: 10px;
+  border-radius: 6px;
+  margin-bottom: 8px;
+}
+
+.edge-relationship {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-cyan);
+  margin-bottom: 6px;
+}
+
+.edge-evidence {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  list-style: disc;
+  padding-left: 16px;
+}
+
+/* Timeline */
+.investigation-timeline {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.timeline-track {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  padding-left: 100px;
+}
+
+.timeline-track::before {
+  content: '';
+  position: absolute;
+  left: 111px;
+  top: 10px;
+  bottom: 10px;
+  width: 2px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.timeline-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 12px 0;
+}
+
+.timeline-time {
+  position: absolute;
+  left: 0;
+  width: 80px;
+  text-align: right;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.timeline-marker {
+  position: absolute;
+  left: 107px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--border-color);
+  border: 2px solid var(--bg-card);
+  z-index: 1;
+}
+
+.timeline-item.anomaly .timeline-marker {
+  background: var(--color-purple);
+  box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.2);
+}
+
+.timeline-item.event .timeline-marker {
+  background: var(--color-cyan);
+}
+
+.timeline-item.usage .timeline-marker {
+  background: var(--color-emerald);
+}
+
+.timeline-content {
+  margin-left: 40px;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  font-weight: 500;
+}
