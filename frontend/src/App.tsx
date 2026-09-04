@@ -16,6 +16,7 @@ export const App: React.FC = () => {
   const [totalCount, setTotalCount] = useState(0);
   const [anomalies, setAnomalies] = useState<AnomalyItem[]>([]);
   const [anomaliesSummary, setAnomaliesSummary] = useState<AnomalySummaryResponse | null>(null);
+  const [selectedAnomalyId, setSelectedAnomalyId] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,6 +35,9 @@ export const App: React.FC = () => {
       setTotalCount(billingData.total_count);
       setAnomalies(anomalyData.anomalies);
       setAnomaliesSummary(summaryData);
+      if (anomalyData.anomalies.length > 0 && !selectedAnomalyId) {
+        setSelectedAnomalyId(anomalyData.anomalies[0].anomaly_id);
+      }
       setError(null);
     } catch (err: any) {
       setError(err?.message || 'Error loading dashboard data');
@@ -46,6 +50,9 @@ export const App: React.FC = () => {
     try {
       const data = await fetchAnomalies(filters);
       setAnomalies(data.anomalies);
+      if (data.anomalies.length > 0) {
+        setSelectedAnomalyId(data.anomalies[0].anomaly_id);
+      }
     } catch (err: any) {
       console.error('Failed to filter anomalies:', err);
     }
@@ -78,6 +85,8 @@ export const App: React.FC = () => {
               loading={loading}
               onFilterChange={loadData}
               onAnomalyFilterChange={handleAnomalyFilter}
+              selectedAnomalyId={selectedAnomalyId}
+              onSelectAnomaly={setSelectedAnomalyId}
             />
           )}
 
@@ -94,7 +103,11 @@ export const App: React.FC = () => {
 
           {activeTab === 'rootcause' && (
             <div className="page-view">
-              <RootCauseSection />
+              <RootCauseSection
+                anomalies={anomalies}
+                selectedAnomalyId={selectedAnomalyId}
+                onSelectAnomaly={setSelectedAnomalyId}
+              />
             </div>
           )}
 
@@ -108,6 +121,8 @@ export const App: React.FC = () => {
                 loading={loading}
                 onFilterChange={loadData}
                 onAnomalyFilterChange={handleAnomalyFilter}
+                selectedAnomalyId={selectedAnomalyId}
+                onSelectAnomaly={setSelectedAnomalyId}
               />
             </div>
           )}
@@ -115,12 +130,12 @@ export const App: React.FC = () => {
           {activeTab === 'settings' && (
             <div className="section-panel glass-card">
               <div className="section-panel-header">
-                <div className="section-panel-title">System Settings</div>
+                <div className="section-panel-title">Root-Cause Scoring Settings</div>
               </div>
               <p className="section-panel-desc">
-                Anomaly detection statistical thresholds, Z-Score sensitivity, rolling window parameters, and notification webhooks.
+                Centralized deterministic evidence weights for Cost Contribution (35%), Usage Delta (25%), Temporal Proximity (25%), and Resource Concentration (15%).
               </p>
-              <div className="badge badge-pending">Z-Score Epsilon: 0.5 | Window Size: 3 | Min Delta: $5.00</div>
+              <div className="badge badge-pending">Confidence High Threshold: $\ge 75\%$ | Medium: $\ge 50\%$</div>
             </div>
           )}
         </main>

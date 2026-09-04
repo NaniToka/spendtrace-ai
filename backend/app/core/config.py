@@ -14,6 +14,17 @@ class AnomalyThresholds(BaseModel):
     Z_SCORE_CRITICAL: float = 4.0
 
 
+class RootCauseScoringWeights(BaseModel):
+    COST_CONTRIBUTION_WEIGHT: float = 0.35
+    USAGE_DELTA_WEIGHT: float = 0.25
+    TEMPORAL_PROXIMITY_WEIGHT: float = 0.25
+    CONCENTRATION_WEIGHT: float = 0.15
+
+    # Confidence classification thresholds
+    CONFIDENCE_HIGH: float = 0.75
+    CONFIDENCE_MEDIUM: float = 0.50
+
+
 class Settings(BaseModel):
     PROJECT_NAME: str = "SpendTrace AI"
     TAGLINE: str = "Don't just detect cloud cost spikes. Explain why they happened."
@@ -27,6 +38,8 @@ class Settings(BaseModel):
         "*",
     ]
     ANOMALY: AnomalyThresholds = AnomalyThresholds()
+    ROOT_CAUSE: RootCauseScoringWeights = RootCauseScoringWeights()
+    OPENAI_API_KEY: str | None = None
 
 
 settings = Settings()

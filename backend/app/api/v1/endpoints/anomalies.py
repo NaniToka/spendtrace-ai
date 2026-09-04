@@ -1,13 +1,15 @@
 from datetime import datetime
 from typing import Optional
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query
 
 from backend.app.schemas.anomaly import (
     AnomalyListResponseSchema,
     AnomalySeverity,
     AnomalySummaryResponseSchema,
 )
+from backend.app.schemas.root_cause import RootCauseResponseSchema
 from backend.app.services.anomaly_service import anomaly_service
+from backend.app.services.root_cause_service import root_cause_service
 
 router = APIRouter()
 
@@ -54,3 +56,14 @@ def get_anomalies_summary(
         region=region,
         team=team,
     )
+
+
+@router.get("/{anomaly_id}/root-causes", response_model=RootCauseResponseSchema)
+def get_anomaly_root_causes(anomaly_id: str):
+    """
+    Investigates and returns ranked root-cause candidates for a given cost anomaly.
+    """
+    result = root_cause_service.investigate_anomaly_by_id(anomaly_id)
+    if not result:
+        raise HTTPException(status_code=404, detail=f"Anomaly with ID '{anomaly_id}' not found.")
+    return result

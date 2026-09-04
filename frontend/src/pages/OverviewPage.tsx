@@ -14,6 +14,8 @@ interface OverviewPageProps {
   loading: boolean;
   onFilterChange: (filters: Record<string, string>) => void;
   onAnomalyFilterChange: (filters: Record<string, string>) => void;
+  selectedAnomalyId?: string;
+  onSelectAnomaly?: (id: string) => void;
 }
 
 export const OverviewPage: React.FC<OverviewPageProps> = ({
@@ -24,6 +26,8 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
   loading,
   onFilterChange,
   onAnomalyFilterChange,
+  selectedAnomalyId,
+  onSelectAnomaly,
 }) => {
   const [selectedService, setSelectedService] = useState('');
   const [selectedTeam, setSelectedTeam] = useState('');
@@ -59,9 +63,13 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
         />
       </div>
 
-      {/* 3. Root Cause Placeholder */}
+      {/* 3. Root Cause Intelligence Section */}
       <div style={{ marginBottom: '20px' }}>
-        <RootCauseSection />
+        <RootCauseSection
+          anomalies={anomalies}
+          selectedAnomalyId={selectedAnomalyId}
+          onSelectAnomaly={onSelectAnomaly}
+        />
       </div>
 
       {/* 4. Ingested Billing Stream Table */}

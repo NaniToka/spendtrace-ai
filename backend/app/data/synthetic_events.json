@@ -1,0 +1,57 @@
+[
+  {
+    "event_id": "dep-7f9b8c2",
+    "timestamp": "2026-08-29T02:15:00Z",
+    "event_type": "DEPLOYMENT",
+    "service": "AmazonEC2",
+    "region": "us-east-1",
+    "resource_id": "arn:aws:ec2:us-east-1:123456789012:natgateway/nat-0a1b2c3d4e5f",
+    "team": "data-platform",
+    "project": "pipeline-sync",
+    "author": "alex.dev@spendtrace.cloud",
+    "commit_sha": "7f9b8c2",
+    "title": "Enable cross-region data sync to eu-west-1",
+    "description": "Deployed batch hourly sync pipeline replicating database snapshots across regions over public NAT Gateway.",
+    "metadata": {
+      "traffic_type": "cross-region",
+      "target_region": "eu-west-1",
+      "vpc_peering_enabled": false
+    }
+  },
+  {
+    "event_id": "dep-3a1e9d0",
+    "timestamp": "2026-08-27T10:30:00Z",
+    "event_type": "DEPLOYMENT",
+    "service": "AmazonRDS",
+    "region": "us-east-1",
+    "resource_id": "arn:aws:rds:us-east-1:123456789012:db:aurora-main-cluster",
+    "team": "core-api",
+    "project": "user-database",
+    "author": "sarah.k@spendtrace.cloud",
+    "commit_sha": "3a1e9d0",
+    "title": "Database connection pool indexing update",
+    "description": "Routine connection pool optimization and query plan caching for Aurora Postgres cluster.",
+    "metadata": {
+      "pool_size": 150,
+      "max_connections": 500
+    }
+  },
+  {
+    "event_id": "infra-c819a2b",
+    "timestamp": "2026-08-28T14:00:00Z",
+    "event_type": "INFRA_CHANGE",
+    "service": "AmazonEC2",
+    "region": "us-east-1",
+    "resource_id": "arn:aws:ec2:us-east-1:123456789012:instance/i-09f182c47a",
+    "team": "core-api",
+    "project": "api-gateway",
+    "author": "infra-bot",
+    "commit_sha": null,
+    "title": "Auto-scaling group security patch update",
+    "description": "Automated weekly OS security patching on c6i.2xlarge compute instance fleet.",
+    "metadata": {
+      "ami_id": "ami-091a782619",
+      "reboot_required": false
+    }
+  }
+]

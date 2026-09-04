@@ -6,6 +6,13 @@ from backend.app.schemas.anomaly import (
     AnomalyListResponseSchema,
     AnomalySummaryResponseSchema,
 )
+from backend.app.schemas.root_cause import (
+    RootCauseCategory,
+    DeploymentEventSchema,
+    RootCauseCandidateSchema,
+    InvestigationSummarySchema,
+    RootCauseResponseSchema,
+)
 
 __all__ = [
     "BillingItemSchema",
@@ -15,4 +22,9 @@ __all__ = [
     "AnomalyItemSchema",
     "AnomalyListResponseSchema",
     "AnomalySummaryResponseSchema",
+    "RootCauseCategory",
+    "DeploymentEventSchema",
+    "RootCauseCandidateSchema",
+    "InvestigationSummarySchema",
+    "RootCauseResponseSchema",
 ]

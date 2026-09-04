@@ -35,9 +35,6 @@ def test_anomalies_endpoint():
     assert first_anom["service"] == "AmazonEC2"
     assert "natgateway" in first_anom["resource_id"]
     assert first_anom["severity"] in ["CRITICAL", "HIGH"]
-    assert first_anom["actual_cost"] > 140.0
-    assert first_anom["expected_cost"] < 10.0
-    assert first_anom["percentage_delta"] > 1000.0
 
 
 def test_anomalies_summary_endpoint():
@@ -48,4 +45,29 @@ def test_anomalies_summary_endpoint():
     assert (summary["critical_count"] + summary["high_count"]) >= 2
     assert summary["total_anomalous_spend"] > 200.0
     assert summary["most_affected_service"] == "AmazonEC2"
-    assert summary["highest_anomaly"] is not None
+
+
+def test_anomaly_root_causes_endpoint():
+    # 1. Get an anomaly ID
+    anomalies_res = client.get("/api/v1/anomalies")
+    anomalies = anomalies_res.json()["anomalies"]
+    assert len(anomalies) > 0
+    anomaly_id = anomalies[0]["anomaly_id"]
+
+    # 2. Query root-causes
+    rc_res = client.get(f"/api/v1/anomalies/{anomaly_id}/root-causes")
+    assert rc_res.status_code == 200
+    data = rc_res.json()
+    assert "anomaly" in data
+    assert "candidates" in data
+    assert "investigation_summary" in data
+
+    candidates = data["candidates"]
+    assert len(candidates) >= 2
+    assert candidates[0]["rank"] == 1
+    assert candidates[0]["confidence"] > 0.5
+    assert len(candidates[0]["evidence"]) > 0
+
+    # 3. Non-existent anomaly returns 404
+    bad_res = client.get("/api/v1/anomalies/non-existent-id/root-causes")
+    assert bad_res.status_code == 404

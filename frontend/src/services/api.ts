@@ -1,6 +1,7 @@
 import { BillingResponse } from '../types/billing';
 import { HealthResponse } from '../types/health';
 import { AnomalyListResponse, AnomalySummaryResponse } from '../types/anomaly';
+import { RootCauseResponse } from '../types/root_cause';
 
 const API_BASE = '/api/v1';
 
@@ -35,6 +36,14 @@ export async function fetchAnomaliesSummary(params?: Record<string, string>): Pr
   const res = await fetch(`${API_BASE}/anomalies/summary${query ? `?${query}` : ''}`);
   if (!res.ok) {
     throw new Error(`Anomalies summary fetch failed with status ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function fetchRootCauses(anomalyId: string): Promise<RootCauseResponse> {
+  const res = await fetch(`${API_BASE}/anomalies/${encodeURIComponent(anomalyId)}/root-causes`);
+  if (!res.ok) {
+    throw new Error(`Failed to fetch root causes for ${anomalyId}: ${res.status}`);
   }
   return res.json();
 }
