@@ -34,23 +34,26 @@ spendtrace-ai/
 │   │   ├── api/
 │   │   │   └── v1/
 │   │   │       ├── endpoints/
+│   │   │       │   ├── anomalies.py     # GET /api/v1/anomalies & /summary
 │   │   │       │   ├── billing.py       # GET /api/v1/billing (Normalized records)
 │   │   │       │   └── health.py        # GET /api/v1/health (System status)
 │   │   │       └── router.py            # API V1 Router
 │   │   ├── core/
-│   │   │   └── config.py                # App configuration & CORS settings
+│   │   │   └── config.py                # Configurable anomaly statistical thresholds & CORS
 │   │   ├── data/
 │   │   │   └── synthetic_billing.json   # Local normalized synthetic AWS dataset
-│   │   ├── models/                      # Domain definitions
 │   │   ├── schemas/                     # Pydantic request/response schemas
+│   │   │   ├── anomaly.py               # AnomalyItem, Severity, Summary schemas
 │   │   │   ├── billing.py
 │   │   │   └── health.py
 │   │   ├── services/
+│   │   │   ├── anomaly_service.py       # Rolling baseline & Z-Score anomaly engine
 │   │   │   └── billing_service.py       # Billing loader & filtering service
 │   │   └── main.py                      # FastAPI application entrypoint
 │   ├── requirements.txt
 │   └── tests/
-│       └── test_api.py                  # Automated Pytest suite
+│       ├── test_anomalies.py            # Focused unit tests for anomaly engine edge cases
+│       └── test_api.py                  # API endpoints integration tests
 │
 ├── frontend/
 │   ├── src/
@@ -58,13 +61,14 @@ spendtrace-ai/
 │   │   │   ├── Header.tsx               # Product branding & live backend status
 │   │   │   ├── Sidebar.tsx              # Workspace navigation sidebar
 │   │   │   ├── CostSummary.tsx          # Total spend & top service/team KPIs
-│   │   │   ├── AnomalySection.tsx       # Anomaly engine feature placeholder
+│   │   │   ├── AnomalySection.tsx       # Live statistical cost anomaly view & table
 │   │   │   └── RootCauseSection.tsx     # Root-cause correlation preview placeholder
 │   │   ├── pages/
-│   │   │   └── OverviewPage.tsx         # Dashboard overview & billing table
+│   │   │   └── OverviewPage.tsx         # Dashboard overview with anomalies & billing table
 │   │   ├── services/
-│   │   │   └── api.ts                   # Type-safe API client
+│   │   │   └── api.ts                   # Type-safe API client (health, billing, anomalies)
 │   │   ├── types/
+│   │   │   ├── anomaly.ts               # Anomaly TypeScript interfaces
 │   │   │   ├── billing.ts               # Billing TypeScript interfaces
 │   │   │   └── health.ts                # Health TypeScript interfaces
 │   │   ├── App.tsx                      # App layout shell
@@ -98,6 +102,8 @@ python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 - Interactive Swagger Docs: `http://localhost:8000/docs`
 - Health Endpoint: `http://localhost:8000/api/v1/health`
 - Billing Endpoint: `http://localhost:8000/api/v1/billing`
+- Anomalies Endpoint: `http://localhost:8000/api/v1/anomalies`
+- Anomalies Summary: `http://localhost:8000/api/v1/anomalies/summary`
 
 ### Frontend Setup (React + TypeScript + Vite)
 ```bash
@@ -114,25 +120,22 @@ PYTHONPATH=. ./backend/venv/bin/pytest backend/tests/
 
 ---
 
-## 📊 5. Synthetic Dataset & Anomaly Scenario
+## 📊 5. Anomaly Detection Methodology
 
-The synthetic dataset in [`backend/app/data/synthetic_billing.json`](file:///Users/tokanani/spendtrace-ai/backend/app/data/synthetic_billing.json) models normalized AWS billing dimensions:
-- `timestamp`: UTC date/hour
-- `service`: AWS service (`AmazonEC2`, `AmazonRDS`)
-- `region`: AWS region (`us-east-1`)
-- `resource_id`: AWS ARN (`arn:aws:ec2:us-east-1:123456789012:natgateway/nat-0a1b2c3d4e5f`)
-- `usage_type`: `NatGateway-Bytes`, `BoxUsage:c6i.2xlarge`, `Aurora:ServerlessV2Usage`
-- `usage_quantity`, `unit_cost`, `total_cost`
-- `team`, `project`, `environment`
-- `deployment_id`: Linked deployment identifier (`dep-7f9b8c2`)
+The anomaly detection engine in [`backend/app/services/anomaly_service.py`](file:///Users/tokanani/spendtrace-ai/backend/app/services/anomaly_service.py) operates on resource-level time series using:
 
-### Designed Scenario:
-1. **Baseline Phase** (Aug 25 – Aug 28):
-   - NAT Gateway normal data transfer cost is stable at **~$4.20/day** (93 GB/day).
-2. **Deployment Event** (Aug 29):
-   - Engineering deployment `dep-7f9b8c2` by `data-platform` enables cross-region database replication over public NAT.
-3. **Anomaly Surge** (Aug 29 – Aug 30):
-   - NAT Gateway data transfer spikes **34x to ~$145.00/day** (3,200 GB/day), creating a distinct cost anomaly linked directly to deployment `dep-7f9b8c2`.
+1. **Rolling Baseline with Contamination Protection**:
+   - Computes expected historical mean and standard deviation over a rolling observation window.
+   - Automatically excludes contaminated spike points from the historical baseline to ensure multi-day surges are detected accurately.
+2. **Safe Statistical Z-Score**:
+   - Evaluates statistical surge: $Z = \frac{\text{Actual} - \text{Expected}}{\sigma_{\text{eff}}}$
+   - Protects against zero/low-variance division with calibrated variance epsilon and scale bounds.
+3. **Calibrated Multi-Tier Severity**:
+   - `CRITICAL`: Absolute delta $\ge \$50$ with $Z \ge 4.0$ or percentage surge $\ge 100\%$
+   - `HIGH`: Absolute delta $\ge \$20$ with $Z \ge 3.0$ or percentage surge $\ge 50\%$
+   - `MEDIUM`: Absolute delta $\ge \$10$ with $Z \ge 2.0$ or percentage surge $\ge 25\%$
+   - `LOW`: Absolute delta $\ge \$5$ with $Z \ge 1.5$
+   - `NORMAL`: Below deviation thresholds
 
 ---
 
@@ -140,24 +143,19 @@ The synthetic dataset in [`backend/app/data/synthetic_billing.json`](file:///Use
 
 | Component | Status | Description |
 |---|---|---|
-| **Backend API** | ✅ Completed | FastAPI app with `/api/v1/health` and `/api/v1/billing` |
-| **Pydantic Schemas** | ✅ Completed | Type-safe schemas with validation and documentation |
-| **Local Data Store** | ✅ Completed | Local JSON dataset with controlled anomaly scenario |
-| **Frontend Shell** | ✅ Completed | React + TypeScript + Vite with sidebar and header |
-| **Cost Summary Cards** | ✅ Completed | Live calculation of spend, top service, and top team |
-| **Placeholders** | ✅ Completed | Clean, structured UI shells for Anomaly & Root Cause |
-| **Test Suite** | ✅ Completed | Pytest validation with 100% pass rate |
+| **Backend API** | ✅ Completed | FastAPI app with `/health`, `/billing`, `/anomalies`, `/anomalies/summary` |
+| **Anomaly Engine** | ✅ Completed | Statistical rolling baseline, Z-Score, contamination protection |
+| **Pydantic Schemas** | ✅ Completed | `AnomalyItemSchema`, `AnomalySummaryResponseSchema` |
+| **Frontend UI** | ✅ Completed | Anomaly KPI badges, severity pills, interactive filterable table |
+| **Test Suite** | ✅ Completed | 12 focused pytest tests covering edge cases and zero-variance safety |
 
 ---
 
 ## 🔮 7. Future Roadmap
 
-- [ ] **Prompt 3: Statistical Anomaly Detection Engine**
-  - Implement rolling baseline variance calculations and Z-Score spike detection.
-  - Compute excess USD spend impact and anomaly severity tags.
-- [ ] **Prompt 4: Deployment & Log Correlation**
-  - Ingest deployment timelines and git commit diffs.
-  - Correlate temporal proximity and resource/tag matches.
+- [ ] **Prompt 4: Deployment & Root-Cause Ranking Engine**
+  - Ingest deployment timelines, git commit diffs, and infra changes.
+  - Correlate temporal proximity, resource matching, and rank candidate causes.
 - [ ] **Prompt 5: AI-Powered Root-Cause Explainer**
   - Integrate LLM to synthesize correlation evidence into actionable incident narratives.
   - Generate remediation recommendations and rollback plans.

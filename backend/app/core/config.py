@@ -1,6 +1,19 @@
 from pydantic import BaseModel
 
 
+class AnomalyThresholds(BaseModel):
+    ROLLING_WINDOW_SIZE: int = 3
+    MIN_VARIANCE_EPSILON: float = 0.5
+    MIN_ABSOLUTE_DELTA: float = 5.0  # Minimum dollar delta to flag as an anomaly
+    MIN_PERCENTAGE_DELTA: float = 25.0  # Minimum percentage delta to flag
+    
+    # Z-Score thresholds for classification
+    Z_SCORE_LOW: float = 1.5
+    Z_SCORE_MEDIUM: float = 2.0
+    Z_SCORE_HIGH: float = 3.0
+    Z_SCORE_CRITICAL: float = 4.0
+
+
 class Settings(BaseModel):
     PROJECT_NAME: str = "SpendTrace AI"
     TAGLINE: str = "Don't just detect cloud cost spikes. Explain why they happened."
@@ -13,6 +26,7 @@ class Settings(BaseModel):
         "http://127.0.0.1:3000",
         "*",
     ]
+    ANOMALY: AnomalyThresholds = AnomalyThresholds()
 
 
 settings = Settings()

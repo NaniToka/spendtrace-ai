@@ -1,5 +1,6 @@
 import { BillingResponse } from '../types/billing';
 import { HealthResponse } from '../types/health';
+import { AnomalyListResponse, AnomalySummaryResponse } from '../types/anomaly';
 
 const API_BASE = '/api/v1';
 
@@ -16,6 +17,24 @@ export async function fetchBilling(params?: Record<string, string>): Promise<Bil
   const res = await fetch(`${API_BASE}/billing${query ? `?${query}` : ''}`);
   if (!res.ok) {
     throw new Error(`Billing fetch failed with status ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function fetchAnomalies(params?: Record<string, string>): Promise<AnomalyListResponse> {
+  const query = params ? new URLSearchParams(params).toString() : '';
+  const res = await fetch(`${API_BASE}/anomalies${query ? `?${query}` : ''}`);
+  if (!res.ok) {
+    throw new Error(`Anomalies fetch failed with status ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function fetchAnomaliesSummary(params?: Record<string, string>): Promise<AnomalySummaryResponse> {
+  const query = params ? new URLSearchParams(params).toString() : '';
+  const res = await fetch(`${API_BASE}/anomalies/summary${query ? `?${query}` : ''}`);
+  if (!res.ok) {
+    throw new Error(`Anomalies summary fetch failed with status ${res.status}`);
   }
   return res.json();
 }

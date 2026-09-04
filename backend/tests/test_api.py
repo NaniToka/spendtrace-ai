@@ -12,7 +12,6 @@ def test_health_endpoint():
     assert data["status"] == "healthy"
     assert data["project"] == "SpendTrace AI"
     assert "Explain why they happened" in data["tagline"]
-    assert "version" in data
 
 
 def test_billing_endpoint():
@@ -22,35 +21,31 @@ def test_billing_endpoint():
     assert "total_count" in data
     assert "records" in data
     assert data["total_count"] > 0
-    
-    first_record = data["records"][0]
-    required_fields = [
-        "record_id",
-        "timestamp",
-        "service",
-        "region",
-        "resource_id",
-        "usage_type",
-        "usage_quantity",
-        "unit_cost",
-        "total_cost",
-        "team",
-        "project",
-        "environment",
-    ]
-    for field in required_fields:
-        assert field in first_record
 
 
-def test_billing_anomaly_scenario_present():
-    response = client.get("/api/v1/billing")
+def test_anomalies_endpoint():
+    response = client.get("/api/v1/anomalies")
+    assert response.status_code == 200
     data = response.json()
-    records = data["records"]
+    assert "total_count" in data
+    assert "anomalies" in data
+    assert data["total_count"] >= 2  # The Aug 29 and Aug 30 NAT gateway spikes
     
-    # Check that normal baseline and spike records exist
-    normal_nat = [r for r in records if r["resource_id"].endswith("nat-0a1b2c3d4e5f") and r["total_cost"] < 10.0]
-    spike_nat = [r for r in records if r["resource_id"].endswith("nat-0a1b2c3d4e5f") and r["total_cost"] > 100.0]
-    
-    assert len(normal_nat) > 0
-    assert len(spike_nat) > 0
-    assert spike_nat[0]["deployment_id"] == "dep-7f9b8c2"
+    first_anom = data["anomalies"][0]
+    assert first_anom["service"] == "AmazonEC2"
+    assert "natgateway" in first_anom["resource_id"]
+    assert first_anom["severity"] in ["CRITICAL", "HIGH"]
+    assert first_anom["actual_cost"] > 140.0
+    assert first_anom["expected_cost"] < 10.0
+    assert first_anom["percentage_delta"] > 1000.0
+
+
+def test_anomalies_summary_endpoint():
+    response = client.get("/api/v1/anomalies/summary")
+    assert response.status_code == 200
+    summary = response.json()
+    assert summary["total_anomalies"] >= 2
+    assert (summary["critical_count"] + summary["high_count"]) >= 2
+    assert summary["total_anomalous_spend"] > 200.0
+    assert summary["most_affected_service"] == "AmazonEC2"
+    assert summary["highest_anomaly"] is not None

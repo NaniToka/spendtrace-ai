@@ -3,20 +3,27 @@ import { CostSummary } from '../components/CostSummary';
 import { AnomalySection } from '../components/AnomalySection';
 import { RootCauseSection } from '../components/RootCauseSection';
 import { BillingRecord } from '../types/billing';
+import { AnomalyItem, AnomalySummaryResponse } from '../types/anomaly';
 import { Database, ArrowUpRight } from 'lucide-react';
 
 interface OverviewPageProps {
   records: BillingRecord[];
   totalCount: number;
+  anomalies: AnomalyItem[];
+  anomaliesSummary: AnomalySummaryResponse | null;
   loading: boolean;
   onFilterChange: (filters: Record<string, string>) => void;
+  onAnomalyFilterChange: (filters: Record<string, string>) => void;
 }
 
 export const OverviewPage: React.FC<OverviewPageProps> = ({
   records,
   totalCount,
+  anomalies,
+  anomaliesSummary,
   loading,
   onFilterChange,
+  onAnomalyFilterChange,
 }) => {
   const [selectedService, setSelectedService] = useState('');
   const [selectedTeam, setSelectedTeam] = useState('');
@@ -42,18 +49,27 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
       {/* 1. Cost Summary Cards */}
       <CostSummary records={records} totalCount={totalCount} />
 
-      {/* 2. Anomaly & Root Cause Feature Placeholders */}
-      <div className="overview-split-grid">
-        <AnomalySection />
+      {/* 2. Anomaly Engine Section */}
+      <div style={{ marginBottom: '20px' }}>
+        <AnomalySection
+          anomalies={anomalies}
+          summary={anomaliesSummary}
+          loading={loading}
+          onFilterChange={onAnomalyFilterChange}
+        />
+      </div>
+
+      {/* 3. Root Cause Placeholder */}
+      <div style={{ marginBottom: '20px' }}>
         <RootCauseSection />
       </div>
 
-      {/* 3. Ingested Billing Stream Table */}
+      {/* 4. Ingested Billing Stream Table */}
       <div className="section-panel glass-card">
         <div className="section-panel-header">
           <div className="section-panel-title">
             <Database size={18} color="var(--color-primary)" />
-            <span>Normalized AWS Billing Stream (Local JSON Ingestion)</span>
+            <span>Normalized AWS Billing Stream (Local Ingestion)</span>
           </div>
           <div className="filter-controls">
             <select

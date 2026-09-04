@@ -162,6 +162,30 @@ body {
   border: 1px solid rgba(245, 158, 11, 0.3);
 }
 
+.badge-critical {
+  background: rgba(244, 63, 94, 0.2);
+  color: #ff859b;
+  border: 1px solid rgba(244, 63, 94, 0.4);
+}
+
+.badge-high {
+  background: rgba(249, 115, 22, 0.2);
+  color: #fdba74;
+  border: 1px solid rgba(249, 115, 22, 0.4);
+}
+
+.badge-medium {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fde047;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.badge-low {
+  background: rgba(6, 182, 212, 0.15);
+  color: #67e8f9;
+  border: 1px solid rgba(6, 182, 212, 0.3);
+}
+
 .badge-tag {
   background: rgba(255, 255, 255, 0.05);
   color: var(--text-secondary);
@@ -279,12 +303,42 @@ body {
   color: var(--text-muted);
 }
 
-/* Split Grid */
-.overview-split-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
+/* Anomaly Stats Bar */
+.anomaly-stats-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+  background: rgba(0, 0, 0, 0.25);
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
 }
+
+.stat-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+  border: 1px solid var(--border-subtle);
+}
+
+.stat-label {
+  color: var(--text-secondary);
+}
+
+.stat-num {
+  font-weight: 700;
+}
+
+.pill-critical .stat-num { color: var(--color-rose); }
+.pill-high .stat-num { color: #fdba74; }
+.pill-medium .stat-num { color: var(--color-amber); }
+.pill-spend .stat-num { color: var(--color-rose); }
+.pill-service .stat-num { color: var(--color-cyan); }
 
 /* Section Panel */
 .section-panel {
@@ -295,7 +349,9 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .section-panel-title {
@@ -311,39 +367,6 @@ body {
   color: var(--text-secondary);
   line-height: 1.5;
   margin-bottom: 18px;
-}
-
-/* Pipeline steps in Anomaly placeholder */
-.placeholder-pipeline-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 12px;
-}
-
-.pipeline-step {
-  background: rgba(0, 0, 0, 0.25);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
-  padding: 12px;
-}
-
-.pipeline-step-num {
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: var(--color-primary);
-  margin-bottom: 4px;
-}
-
-.pipeline-step-title {
-  font-size: 0.82rem;
-  font-weight: 600;
-  margin-bottom: 4px;
-}
-
-.pipeline-step-desc {
-  font-size: 0.72rem;
-  color: var(--text-muted);
-  line-height: 1.35;
 }
 
 /* Correlation preview in Root Cause placeholder */
@@ -400,10 +423,11 @@ body {
   color: var(--text-muted);
 }
 
-/* Table */
+/* Filter controls & Table */
 .filter-controls {
   display: flex;
   gap: 10px;
+  flex-wrap: wrap;
 }
 
 .filter-select {
@@ -480,12 +504,6 @@ body {
 
 @media (max-width: 900px) {
   .layout-body {
-    grid-template-columns: 1fr;
-  }
-  .overview-split-grid {
-    grid-template-columns: 1fr;
-  }
-  .placeholder-pipeline-grid {
     grid-template-columns: 1fr;
   }
 }

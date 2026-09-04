@@ -34,4 +34,6 @@ def root():
         "docs": "/docs",
         "health": f"{settings.API_V1_STR}/health",
         "billing": f"{settings.API_V1_STR}/billing",
+        "anomalies": f"{settings.API_V1_STR}/anomalies",
+        "anomalies_summary": f"{settings.API_V1_STR}/anomalies/summary",
     }

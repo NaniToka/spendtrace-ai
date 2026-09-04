@@ -4,34 +4,50 @@ import { Sidebar } from './components/Sidebar';
 import { OverviewPage } from './pages/OverviewPage';
 import { AnomalySection } from './components/AnomalySection';
 import { RootCauseSection } from './components/RootCauseSection';
-import { fetchBilling, fetchHealth } from './services/api';
+import { fetchBilling, fetchHealth, fetchAnomalies, fetchAnomaliesSummary } from './services/api';
 import { BillingRecord } from './types/billing';
 import { HealthResponse } from './types/health';
+import { AnomalyItem, AnomalySummaryResponse } from './types/anomaly';
 
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [health, setHealth] = useState<HealthResponse | null>(null);
   const [records, setRecords] = useState<BillingRecord[]>([]);
   const [totalCount, setTotalCount] = useState(0);
+  const [anomalies, setAnomalies] = useState<AnomalyItem[]>([]);
+  const [anomaliesSummary, setAnomaliesSummary] = useState<AnomalySummaryResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadData = async (filters: Record<string, string> = {}) => {
+  const loadData = async (billingFilters: Record<string, string> = {}) => {
     try {
       setLoading(true);
-      const [healthData, billingData] = await Promise.all([
+      const [healthData, billingData, anomalyData, summaryData] = await Promise.all([
         fetchHealth().catch(() => null),
-        fetchBilling(filters).catch(() => ({ total_count: 0, records: [] })),
+        fetchBilling(billingFilters).catch(() => ({ total_count: 0, records: [] })),
+        fetchAnomalies().catch(() => ({ total_count: 0, anomalies: [] })),
+        fetchAnomaliesSummary().catch(() => null),
       ]);
 
       setHealth(healthData);
       setRecords(billingData.records);
       setTotalCount(billingData.total_count);
+      setAnomalies(anomalyData.anomalies);
+      setAnomaliesSummary(summaryData);
       setError(null);
     } catch (err: any) {
       setError(err?.message || 'Error loading dashboard data');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAnomalyFilter = async (filters: Record<string, string>) => {
+    try {
+      const data = await fetchAnomalies(filters);
+      setAnomalies(data.anomalies);
+    } catch (err: any) {
+      console.error('Failed to filter anomalies:', err);
     }
   };
 
@@ -57,14 +73,22 @@ export const App: React.FC = () => {
             <OverviewPage
               records={records}
               totalCount={totalCount}
+              anomalies={anomalies}
+              anomaliesSummary={anomaliesSummary}
               loading={loading}
               onFilterChange={loadData}
+              onAnomalyFilterChange={handleAnomalyFilter}
             />
           )}
 
           {activeTab === 'anomalies' && (
             <div className="page-view">
-              <AnomalySection />
+              <AnomalySection
+                anomalies={anomalies}
+                summary={anomaliesSummary}
+                loading={loading}
+                onFilterChange={handleAnomalyFilter}
+              />
             </div>
           )}
 
@@ -79,8 +103,11 @@ export const App: React.FC = () => {
               <OverviewPage
                 records={records}
                 totalCount={totalCount}
+                anomalies={anomalies}
+                anomaliesSummary={anomaliesSummary}
                 loading={loading}
                 onFilterChange={loadData}
+                onAnomalyFilterChange={handleAnomalyFilter}
               />
             </div>
           )}
@@ -91,9 +118,9 @@ export const App: React.FC = () => {
                 <div className="section-panel-title">System Settings</div>
               </div>
               <p className="section-panel-desc">
-                AWS Credentials, CUR Ingestion Pipelines, Webhook Alerts, and Model Configurations.
+                Anomaly detection statistical thresholds, Z-Score sensitivity, rolling window parameters, and notification webhooks.
               </p>
-              <div className="badge badge-pending">Planned for Future Phases</div>
+              <div className="badge badge-pending">Z-Score Epsilon: 0.5 | Window Size: 3 | Min Delta: $5.00</div>
             </div>
           )}
         </main>
