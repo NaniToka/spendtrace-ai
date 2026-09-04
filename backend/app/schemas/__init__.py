@@ -11,12 +11,16 @@ from backend.app.schemas.root_cause import (
     InvestigationSummarySchema,
     RootCauseResponseSchema,
 )
+from backend.app.schemas.graph import (
+    InvestigationNode,
+    InvestigationEdge,
+    InvestigationGraphSummary,
+    InvestigationGraphResponse,
+)
 from backend.app.schemas.explanation import ExplanationResponseSchema
+from backend.app.schemas.financial_impact import FinancialImpactResponseSchema
 
 __all__ = [
-    "BillingItemSchema",
-    "BillingResponseSchema",
-    "HealthResponseSchema",
     "AnomalySeverity",
     "AnomalyItemSchema",
     "AnomalyListResponseSchema",
@@ -26,4 +30,10 @@ __all__ = [
     "RootCauseCandidateSchema",
     "InvestigationSummarySchema",
     "RootCauseResponseSchema",
+    "InvestigationNode",
+    "InvestigationEdge",
+    "InvestigationGraphSummary",
+    "InvestigationGraphResponse",
+    "ExplanationResponseSchema",
+    "FinancialImpactResponseSchema",
 ]

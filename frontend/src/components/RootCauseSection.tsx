@@ -12,8 +12,10 @@ import { AnomalyItem } from '../types/anomaly';
 import { RootCauseResponse } from '../types/root_cause';
 import { InvestigationGraphResponse } from '../types/graph';
 import { ExplanationResponse } from '../types/explanation';
-import { fetchRootCauses, fetchInvestigationGraph, fetchExplanation } from '../services/api';
+import { FinancialImpactResponse } from '../types/financial_impact';
+import { fetchRootCauses, fetchInvestigationGraph, fetchExplanation, fetchFinancialImpact } from '../services/api';
 import { AIExplanationSection } from './AIExplanationSection';
+import { FinancialImpactSection } from './FinancialImpactSection';
 import { InvestigationGraphView } from './InvestigationGraphView';
 import { InvestigationTimeline } from './InvestigationTimeline';
 
@@ -32,6 +34,7 @@ export const RootCauseSection: React.FC<RootCauseSectionProps> = ({
   const [rootCauseData, setRootCauseData] = useState<RootCauseResponse | null>(null);
   const [graphData, setGraphData] = useState<InvestigationGraphResponse | null>(null);
   const [explanationData, setExplanationData] = useState<ExplanationResponse | null>(null);
+  const [financialImpactData, setFinancialImpactData] = useState<FinancialImpactResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -54,13 +57,15 @@ export const RootCauseSection: React.FC<RootCauseSectionProps> = ({
     Promise.all([
       fetchRootCauses(activeAnomalyId),
       fetchInvestigationGraph(activeAnomalyId),
-      fetchExplanation(activeAnomalyId)
+      fetchExplanation(activeAnomalyId),
+      fetchFinancialImpact(activeAnomalyId)
     ])
-      .then(([rcData, gData, expData]) => {
+      .then(([rcData, gData, expData, fiData]) => {
         if (isMounted) {
           setRootCauseData(rcData);
           setGraphData(gData);
           setExplanationData(expData);
+          setFinancialImpactData(fiData);
           setLoading(false);
         }
       })
@@ -166,6 +171,11 @@ export const RootCauseSection: React.FC<RootCauseSectionProps> = ({
           {/* AI Explanation Banner */}
           {explanationData && (
             <AIExplanationSection explanation={explanationData} />
+          )}
+
+          {/* Financial Impact Simulator */}
+          {financialImpactData && (
+            <FinancialImpactSection impact={financialImpactData} />
           )}
 
           {/* Investigation Graph & Timeline */}

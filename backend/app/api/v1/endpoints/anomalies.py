@@ -10,10 +10,12 @@ from backend.app.schemas.anomaly import (
 from backend.app.schemas.root_cause import RootCauseResponseSchema
 from backend.app.schemas.graph import InvestigationGraphResponse
 from backend.app.schemas.explanation import ExplanationResponseSchema
+from backend.app.schemas.financial_impact import FinancialImpactResponseSchema
 from backend.app.services.anomaly_service import anomaly_service
 from backend.app.services.root_cause_service import root_cause_service
 from backend.app.services.graph_service import graph_service
 from backend.app.services.explanation_service import explanation_service
+from backend.app.services.financial_impact_service import financial_impact_service
 
 router = APIRouter()
 
@@ -108,3 +110,19 @@ def get_anomaly_explanation(anomaly_id: str):
         
     explanation = explanation_service.generate_explanation(anomaly, candidates, graph_result)
     return explanation
+
+@router.get("/{anomaly_id}/financial-impact", response_model=FinancialImpactResponseSchema)
+def get_anomaly_financial_impact(anomaly_id: str):
+    """
+    Returns the financial impact projection and estimated savings for a given anomaly.
+    """
+    anomalies = anomaly_service.detect_anomalies()
+    anomaly = next((a for a in anomalies if a.anomaly_id == anomaly_id), None)
+    
+    # We allow the service to handle the missing/None anomaly to return INSUFFICIENT_DATA
+    # but since it's a 404 in REST context, we can raise it or return the schema. 
+    # Returning the schema with INSUFFICIENT_DATA status is safer for UI rendering.
+    if not anomaly:
+        return financial_impact_service.calculate_impact(None)
+        
+    return financial_impact_service.calculate_impact(anomaly)

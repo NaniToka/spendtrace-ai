@@ -4,6 +4,7 @@ import { AnomalyListResponse, AnomalySummaryResponse } from '../types/anomaly';
 import { RootCauseResponse } from '../types/root_cause';
 import { InvestigationGraphResponse } from '../types/graph';
 import { ExplanationResponse } from '../types/explanation';
+import { FinancialImpactResponse } from '../types/financial_impact';
 
 const API_BASE = '/api/v1';
 
@@ -62,6 +63,14 @@ export async function fetchExplanation(anomalyId: string): Promise<ExplanationRe
   const res = await fetch(`${API_BASE}/anomalies/${encodeURIComponent(anomalyId)}/explanation`);
   if (!res.ok) {
     throw new Error(`Failed to fetch explanation for ${anomalyId}: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function fetchFinancialImpact(anomalyId: string): Promise<FinancialImpactResponse> {
+  const res = await fetch(`${API_BASE}/anomalies/${encodeURIComponent(anomalyId)}/financial-impact`);
+  if (!res.ok) {
+    throw new Error(`Failed to fetch financial impact for ${anomalyId}: ${res.status}`);
   }
   return res.json();
 }
