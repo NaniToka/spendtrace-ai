@@ -34,7 +34,7 @@ export interface InvestigationGraphSummary {
   primary_event?: string;
   strongest_signal: string;
   confidence: number;
-  evidence_count: int;
+  evidence_count: number;
   node_count: number;
   edge_count: number;
 }

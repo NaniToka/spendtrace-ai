@@ -45,15 +45,8 @@ export interface InvestigationSummary {
   correlated_events_count: number;
 }
 
-export interface AIExplanation {
-  summary: string;
-  narrative: string;
-  remediation_steps: string[];
-}
-
 export interface RootCauseResponse {
   anomaly: AnomalyItem;
   candidates: RootCauseCandidate[];
   investigation_summary: InvestigationSummary;
-  ai_explanation?: AIExplanation;
 }

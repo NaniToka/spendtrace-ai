@@ -56,12 +56,6 @@ class RootCauseCandidateSchema(BaseModel):
     evidence: List[str] = Field(default_factory=list, description="List of concrete measurable evidence items")
 
 
-class AIExplanationSchema(BaseModel):
-    summary: str = Field(..., description="A short 1-2 sentence executive summary of the root cause.")
-    narrative: str = Field(..., description="A detailed markdown-formatted narrative explaining the cost spike and correlating evidence.")
-    remediation_steps: List[str] = Field(default_factory=list, description="List of suggested actionable remediation steps.")
-
-
 class InvestigationSummarySchema(BaseModel):
     primary_service: str
     primary_region: str
@@ -77,4 +71,3 @@ class RootCauseResponseSchema(BaseModel):
     anomaly: AnomalyItemSchema
     candidates: List[RootCauseCandidateSchema]
     investigation_summary: InvestigationSummarySchema
-    ai_explanation: Optional[AIExplanationSchema] = None

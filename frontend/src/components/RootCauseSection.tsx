@@ -11,7 +11,8 @@ import {
 import { AnomalyItem } from '../types/anomaly';
 import { RootCauseResponse } from '../types/root_cause';
 import { InvestigationGraphResponse } from '../types/graph';
-import { fetchRootCauses, fetchInvestigationGraph } from '../services/api';
+import { ExplanationResponse } from '../types/explanation';
+import { fetchRootCauses, fetchInvestigationGraph, fetchExplanation } from '../services/api';
 import { AIExplanationSection } from './AIExplanationSection';
 import { InvestigationGraphView } from './InvestigationGraphView';
 import { InvestigationTimeline } from './InvestigationTimeline';
@@ -30,6 +31,7 @@ export const RootCauseSection: React.FC<RootCauseSectionProps> = ({
   const [activeAnomalyId, setActiveAnomalyId] = useState<string>('');
   const [rootCauseData, setRootCauseData] = useState<RootCauseResponse | null>(null);
   const [graphData, setGraphData] = useState<InvestigationGraphResponse | null>(null);
+  const [explanationData, setExplanationData] = useState<ExplanationResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -51,12 +53,14 @@ export const RootCauseSection: React.FC<RootCauseSectionProps> = ({
 
     Promise.all([
       fetchRootCauses(activeAnomalyId),
-      fetchInvestigationGraph(activeAnomalyId)
+      fetchInvestigationGraph(activeAnomalyId),
+      fetchExplanation(activeAnomalyId)
     ])
-      .then(([rcData, gData]) => {
+      .then(([rcData, gData, expData]) => {
         if (isMounted) {
           setRootCauseData(rcData);
           setGraphData(gData);
+          setExplanationData(expData);
           setLoading(false);
         }
       })
@@ -160,8 +164,8 @@ export const RootCauseSection: React.FC<RootCauseSectionProps> = ({
       ) : rootCauseData ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           {/* AI Explanation Banner */}
-          {rootCauseData.ai_explanation && (
-            <AIExplanationSection explanation={rootCauseData.ai_explanation} />
+          {explanationData && (
+            <AIExplanationSection explanation={explanationData} />
           )}
 
           {/* Investigation Graph & Timeline */}

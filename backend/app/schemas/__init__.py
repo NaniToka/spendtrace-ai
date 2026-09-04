@@ -1,5 +1,3 @@
-from backend.app.schemas.billing import BillingItemSchema, BillingResponseSchema
-from backend.app.schemas.health import HealthResponseSchema
 from backend.app.schemas.anomaly import (
     AnomalySeverity,
     AnomalyItemSchema,
@@ -13,6 +11,7 @@ from backend.app.schemas.root_cause import (
     InvestigationSummarySchema,
     RootCauseResponseSchema,
 )
+from backend.app.schemas.explanation import ExplanationResponseSchema
 
 __all__ = [
     "BillingItemSchema",

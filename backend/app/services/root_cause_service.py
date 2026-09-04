@@ -14,7 +14,6 @@ from backend.app.schemas.root_cause import (
 from backend.app.services.anomaly_service import anomaly_service
 from backend.app.services.billing_service import billing_service
 from backend.app.services.event_service import event_service
-from backend.app.services.ai_service import ai_service
 
 
 def _res_matches(res_a: Optional[str], res_b: Optional[str]) -> bool:
@@ -314,13 +313,10 @@ class RootCauseAnalysisService:
             correlated_events_count=len(correlated_events),
         )
 
-        ai_explanation = ai_service.generate_explanation(anomaly, candidates, summary)
-
         return RootCauseResponseSchema(
             anomaly=anomaly,
             candidates=candidates,
             investigation_summary=summary,
-            ai_explanation=ai_explanation,
         )
 
     def _calc_dimension_contributions(

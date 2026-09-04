@@ -9,9 +9,11 @@ from backend.app.schemas.anomaly import (
 )
 from backend.app.schemas.root_cause import RootCauseResponseSchema
 from backend.app.schemas.graph import InvestigationGraphResponse
+from backend.app.schemas.explanation import ExplanationResponseSchema
 from backend.app.services.anomaly_service import anomaly_service
 from backend.app.services.root_cause_service import root_cause_service
 from backend.app.services.graph_service import graph_service
+from backend.app.services.explanation_service import explanation_service
 
 router = APIRouter()
 
@@ -79,3 +81,30 @@ def get_anomaly_investigation_graph(anomaly_id: str):
     if not result:
         raise HTTPException(status_code=404, detail=f"Anomaly with ID '{anomaly_id}' not found.")
     return result
+
+@router.get("/{anomaly_id}/explanation", response_model=ExplanationResponseSchema)
+def get_anomaly_explanation(anomaly_id: str):
+    """
+    Returns a structured AI explanation for a given cost anomaly based on root causes and graph.
+    """
+    # We must fetch the upstream dependencies first
+    anomalies = anomaly_service.detect_anomalies()
+    anomaly = next((a for a in anomalies if a.anomaly_id == anomaly_id), None)
+    if not anomaly:
+        raise HTTPException(status_code=404, detail=f"Anomaly with ID '{anomaly_id}' not found.")
+        
+    rc_result = root_cause_service.investigate_anomaly_by_id(anomaly_id)
+    candidates = rc_result.candidates if rc_result else []
+    
+    graph_result = graph_service.build_investigation_graph(anomaly_id)
+    if not graph_result:
+        # Fallback to an empty graph if not available
+        from backend.app.schemas.graph import InvestigationGraphResponse, InvestigationGraphSummary
+        graph_result = InvestigationGraphResponse(
+            anomaly=anomaly, nodes=[], edges=[], summary=InvestigationGraphSummary(
+                strongest_signal="N/A", confidence=0.0, evidence_count=0, node_count=0, edge_count=0
+            )
+        )
+        
+    explanation = explanation_service.generate_explanation(anomaly, candidates, graph_result)
+    return explanation
