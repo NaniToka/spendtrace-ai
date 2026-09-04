@@ -1,23 +1,16 @@
 from datetime import datetime, timezone
 from fastapi import APIRouter
-from pydantic import BaseModel
 
 from backend.app.core.config import settings
+from backend.app.schemas.health import HealthResponseSchema
 
 router = APIRouter()
 
 
-class HealthResponse(BaseModel):
-    status: str
-    project: str
-    tagline: str
-    version: str
-    timestamp: datetime
-
-
-@router.get("", response_model=HealthResponse)
+@router.get("", response_model=HealthResponseSchema)
 def health_check():
-    return HealthResponse(
+    """Returns application health, brand metadata, and version."""
+    return HealthResponseSchema(
         status="healthy",
         project=settings.PROJECT_NAME,
         tagline=settings.TAGLINE,
