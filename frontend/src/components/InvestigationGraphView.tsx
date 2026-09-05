@@ -1,129 +1,323 @@
-import React, { useState } from 'react';
-import { InvestigationGraphResponse, InvestigationNode } from '../types/graph';
-import { Layers, Server, Activity, GitCommit, Target, AlertTriangle, Network } from 'lucide-react';
+import React, { useEffect, useState, useRef } from 'react';
+import { fetchInvestigationGraph } from '../services/api';
+import { InvestigationGraphResponse, InvestigationNode, InvestigationEdge } from '../types/graph';
 
-interface InvestigationGraphViewProps {
-  graph: InvestigationGraphResponse;
+interface Point { x: number; y: number; vx: number; vy: number }
+interface NodeWithPosition extends InvestigationNode { pos: Point }
+
+interface Props {
+  anomalyId?: string;
+  graph?: InvestigationGraphResponse;
 }
 
-export const InvestigationGraphView: React.FC<InvestigationGraphViewProps> = ({ graph }) => {
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+const WIDTH = 800;
+const HEIGHT = 600;
 
-  const getIconForType = (type: string) => {
-    switch (type) {
-      case 'ANOMALY': return <AlertTriangle size={18} className="text-critical" />;
-      case 'SERVICE': return <Layers size={18} className="text-primary-light" />;
-      case 'RESOURCE': return <Server size={18} className="text-cyan-400" />;
-      case 'USAGE': return <Activity size={18} className="text-emerald-400" />;
-      case 'DEPLOYMENT':
-      case 'EVENT': return <GitCommit size={18} className="text-purple-400" />;
-      default: return <Target size={18} className="text-secondary" />;
+function getNodeColor(type: string): string {
+  switch (type) {
+    case 'ANOMALY': return 'var(--color-danger)';
+    case 'SERVICE': return 'var(--color-primary)';
+    case 'REGION': return 'var(--color-secondary)';
+    case 'RESOURCE': return 'var(--color-primary)';
+    case 'TEAM': 
+    case 'PROJECT': return 'var(--color-success)';
+    case 'DEPLOYMENT':
+    case 'EVENT': return 'var(--color-warning)';
+    default: return 'var(--color-text-secondary)';
+  }
+}
+
+export const InvestigationGraphView: React.FC<Props> = ({ anomalyId, graph }) => {
+  const [data, setData] = useState<InvestigationGraphResponse | null>(graph || null);
+  const [loading, setLoading] = useState(!graph);
+  const [error, setError] = useState<string | null>(null);
+  
+  const [nodes, setNodes] = useState<NodeWithPosition[]>([]);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  
+  // Animation frame reference
+  const animationRef = useRef<number>();
+
+  useEffect(() => {
+    let active = true;
+    
+    const initData = (res: InvestigationGraphResponse) => {
+      setData(res);
+      const initNodes = res.nodes.map(n => ({
+        ...n,
+        pos: {
+          x: WIDTH / 2 + (Math.random() - 0.5) * 100,
+          y: HEIGHT / 2 + (Math.random() - 0.5) * 100,
+          vx: 0,
+          vy: 0
+        }
+      }));
+      setNodes(initNodes);
+      runSimulation(initNodes, res.edges);
+    };
+
+    if (graph) {
+      initData(graph);
+      setLoading(false);
+      return;
     }
+
+    if (!anomalyId) return;
+
+    const loadGraph = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetchInvestigationGraph(anomalyId);
+        if (!active) return;
+        initData(res);
+      } catch (err: any) {
+        if (active) setError(err.message || 'Failed to fetch graph data');
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+    loadGraph();
+    return () => { active = false; if (animationRef.current) cancelAnimationFrame(animationRef.current); };
+  }, [anomalyId, graph]);
+
+  const runSimulation = (initNodes: NodeWithPosition[], edges: InvestigationEdge[]) => {
+    let currentNodes = [...initNodes];
+    let iteration = 0;
+    const MAX_ITERATIONS = 150;
+    
+    // Physics constants
+    const REPULSION = 10000;
+    const ATTRACTION = 0.05;
+    const DAMPING = 0.5;
+    const CENTER_GRAVITY = 0.02;
+    const IDEAL_EDGE_LENGTH = 120;
+
+    const tick = () => {
+      if (iteration >= MAX_ITERATIONS) return;
+      
+      const nextNodes = currentNodes.map(n => ({ ...n, pos: { ...n.pos } }));
+      
+      // Calculate repulsion between all nodes
+      for (let i = 0; i < nextNodes.length; i++) {
+        for (let j = i + 1; j < nextNodes.length; j++) {
+          const dx = nextNodes[i].pos.x - nextNodes[j].pos.x;
+          const dy = nextNodes[i].pos.y - nextNodes[j].pos.y;
+          const distSq = dx * dx + dy * dy;
+          if (distSq > 0.01) {
+            const force = REPULSION / distSq;
+            const dist = Math.sqrt(distSq);
+            const fx = (dx / dist) * force;
+            const fy = (dy / dist) * force;
+            
+            nextNodes[i].pos.vx += fx;
+            nextNodes[i].pos.vy += fy;
+            nextNodes[j].pos.vx -= fx;
+            nextNodes[j].pos.vy -= fy;
+          }
+        }
+      }
+      
+      // Calculate edge attraction
+      edges.forEach(edge => {
+        const sourceNode = nextNodes.find(n => n.id === edge.source);
+        const targetNode = nextNodes.find(n => n.id === edge.target);
+        if (sourceNode && targetNode) {
+          const dx = targetNode.pos.x - sourceNode.pos.x;
+          const dy = targetNode.pos.y - sourceNode.pos.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist > 0) {
+            const force = (dist - IDEAL_EDGE_LENGTH) * ATTRACTION;
+            const fx = (dx / dist) * force;
+            const fy = (dy / dist) * force;
+            
+            sourceNode.pos.vx += fx;
+            sourceNode.pos.vy += fy;
+            targetNode.pos.vx -= fx;
+            targetNode.pos.vy -= fy;
+          }
+        }
+      });
+      
+      // Calculate center gravity and apply velocity
+      nextNodes.forEach(n => {
+        const dx = (WIDTH / 2) - n.pos.x;
+        const dy = (HEIGHT / 2) - n.pos.y;
+        n.pos.vx += dx * CENTER_GRAVITY;
+        n.pos.vy += dy * CENTER_GRAVITY;
+        
+        n.pos.vx *= DAMPING;
+        n.pos.vy *= DAMPING;
+        
+        n.pos.x += n.pos.vx;
+        n.pos.y += n.pos.vy;
+        
+        // Keep in bounds
+        n.pos.x = Math.max(30, Math.min(WIDTH - 30, n.pos.x));
+        n.pos.y = Math.max(30, Math.min(HEIGHT - 30, n.pos.y));
+      });
+      
+      currentNodes = nextNodes;
+      setNodes(currentNodes);
+      iteration++;
+      animationRef.current = requestAnimationFrame(tick);
+    };
+    
+    animationRef.current = requestAnimationFrame(tick);
   };
 
-  const selectedNode = selectedNodeId ? graph.nodes.find(n => n.id === selectedNodeId) : null;
+  if (loading) return <div className="text-secondary p-8">Loading graph analysis...</div>;
+  if (error) return <div className="text-danger p-8">{error}</div>;
+  if (!data) return null;
+
+  const selectedNode = nodes.find(n => n.id === selectedNodeId);
+  
+  // Find evidence related to selected node
   const relatedEdges = selectedNode 
-    ? graph.edges.filter(e => e.source === selectedNode.id || e.target === selectedNode.id)
+    ? data.edges.filter(e => e.source === selectedNode.id || e.target === selectedNode.id)
     : [];
 
-  const anomalyNode = graph.nodes.find(n => n.type === 'ANOMALY');
-  const serviceNodes = graph.nodes.filter(n => n.type === 'SERVICE');
-  const resourceNodes = graph.nodes.filter(n => n.type === 'RESOURCE');
-  const otherNodes = graph.nodes.filter(n => !['ANOMALY', 'SERVICE', 'RESOURCE'].includes(n.type));
-
-  const renderNode = (node: InvestigationNode) => {
-    const isSelected = selectedNodeId === node.id;
-    return (
-      <div 
-        key={node.id} 
-        className={`flex items-center gap-3 bg-surface border ${isSelected ? 'border-primary ring-1 ring-primary' : 'border-subtle hover:border-cyan-500'} p-3 rounded-lg min-w-[180px] cursor-pointer transition-all shadow-sm`}
-        onClick={() => setSelectedNodeId(node.id)}
-      >
-        <div className="flex items-center justify-center bg-card rounded-md w-9 h-9 border border-subtle shrink-0">
-          {getIconForType(node.type)}
-        </div>
-        <div className="overflow-hidden">
-          <div className="text-[10px] font-bold text-muted uppercase tracking-wider mb-0.5">{node.type}</div>
-          <div className="text-sm font-medium text-primary truncate" title={node.label}>{node.label}</div>
-        </div>
-      </div>
-    );
-  };
-
   return (
-    <div className="glass-card p-6">
-      <div className="flex items-center gap-3 mb-6">
-        <Network size={20} className="text-primary" />
-        <h2 className="text-lg font-bold">Investigation Evidence Graph</h2>
-      </div>
+    <div className="relative w-full h-[600px] border border-white/5 rounded-lg overflow-hidden bg-[#0a0f1c]">
+      <svg width={WIDTH} height={HEIGHT} className="absolute inset-0 w-full h-full">
+        <defs>
+          <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="25" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="rgba(255,255,255,0.3)" />
+          </marker>
+        </defs>
+        
+        {/* Draw Edges */}
+        {data.edges.map(edge => {
+          const source = nodes.find(n => n.id === edge.source);
+          const target = nodes.find(n => n.id === edge.target);
+          if (!source || !target) return null;
+          
+          const isSelected = selectedNodeId === source.id || selectedNodeId === target.id;
+          const stroke = isSelected ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.2)';
+          
+          // Midpoint for label
+          const mx = (source.pos.x + target.pos.x) / 2;
+          const my = (source.pos.y + target.pos.y) / 2;
+          
+          // Strength indicates stroke width somewhat
+          const sw = Math.max(1, edge.strength * 3);
 
-      <div className="bg-[#0b111d] border border-subtle rounded-lg p-6 mb-6 overflow-x-auto">
-        <div className="flex items-center gap-6 min-w-max">
-           {/* Simple Flow: Anomaly -> Service -> Resource -> Others */}
-           {anomalyNode && (
-             <div className="flex flex-col gap-3">
-               {renderNode(anomalyNode)}
-             </div>
-           )}
-           {anomalyNode && <div className="text-muted text-xl font-light">→</div>}
-           
-           <div className="flex flex-col gap-3">
-             {serviceNodes.map(n => renderNode(n))}
-           </div>
-           {serviceNodes.length > 0 && <div className="text-muted text-xl font-light">→</div>}
-           
-           <div className="flex flex-col gap-3">
-             {resourceNodes.map(n => renderNode(n))}
-           </div>
-           {resourceNodes.length > 0 && <div className="text-muted text-xl font-light">→</div>}
-           
-           <div className="flex flex-col gap-3">
-             {otherNodes.map(n => renderNode(n))}
-           </div>
-        </div>
-      </div>
-
+          return (
+            <g key={edge.id}>
+              <line 
+                x1={source.pos.x} y1={source.pos.y} 
+                x2={target.pos.x} y2={target.pos.y} 
+                stroke={stroke} strokeWidth={sw}
+                markerEnd="url(#arrowhead)"
+              />
+              <rect 
+                x={mx - 50} y={my - 10} 
+                width={100} height={20} 
+                fill="#070B14" rx="4"
+              />
+              <text 
+                x={mx} y={my + 4} 
+                fontSize="10" 
+                fill={isSelected ? '#fff' : 'rgba(255,255,255,0.5)'}
+                textAnchor="middle"
+              >
+                {edge.relationship}
+              </text>
+            </g>
+          );
+        })}
+        
+        {/* Draw Nodes */}
+        {nodes.map(node => {
+          const color = getNodeColor(node.type);
+          const isSelected = selectedNodeId === node.id;
+          
+          return (
+            <g 
+              key={node.id} 
+              transform={`translate(${node.pos.x},${node.pos.y})`}
+              onClick={() => setSelectedNodeId(node.id)}
+              className="cursor-pointer transition-transform duration-200 hover:scale-110"
+            >
+              <circle 
+                r={16} 
+                fill={color} 
+                opacity={isSelected ? 1 : 0.8}
+                stroke={isSelected ? '#fff' : 'transparent'}
+                strokeWidth={2}
+                className="drop-shadow-lg"
+              />
+              <text 
+                y={28} 
+                fontSize="12" 
+                fill="#fff" 
+                textAnchor="middle"
+                className="font-medium drop-shadow"
+              >
+                {node.label}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
+      
+      {/* Side Panel for selected node */}
       {selectedNode && (
-        <div className="bg-surface border border-subtle rounded-lg p-5">
-          <div className="flex items-center gap-3 mb-4">
-             <div className="bg-card border border-subtle p-2 rounded-md">{getIconForType(selectedNode.type)}</div>
-             <div>
-               <div className="text-sm text-secondary font-mono">{selectedNode.type}</div>
-               <strong className="text-lg">{selectedNode.label}</strong>
-             </div>
+        <div className="absolute top-0 right-0 h-full w-80 bg-[#070B14]/90 backdrop-blur-xl border-l border-white/10 p-6 flex flex-col overflow-y-auto">
+          <button 
+            onClick={() => setSelectedNodeId(null)}
+            className="absolute top-4 right-4 text-white/50 hover:text-white"
+          >
+            ✕
+          </button>
+          
+          <div className="mb-6 mt-4">
+            <span className="text-xs font-bold uppercase tracking-wider px-2 py-1 rounded" style={{ backgroundColor: getNodeColor(selectedNode.type) + '30', color: getNodeColor(selectedNode.type) }}>
+              {selectedNode.type}
+            </span>
+            <h3 className="text-xl font-bold mt-3">{selectedNode.label}</h3>
           </div>
           
-          {Object.keys(selectedNode.metadata).length > 0 && (
-            <div className="grid grid-cols-2 gap-3 mb-4 p-4 bg-card rounded-md border border-subtle">
-               {Object.entries(selectedNode.metadata).map(([k, v]) => (
-                  <div key={k} className="flex flex-col">
-                    <span className="text-xs text-muted uppercase tracking-wider">{k}</span>
-                    <span className="font-mono text-sm text-primary-light">{String(v)}</span>
-                  </div>
-               ))}
-            </div>
-          )}
-
-          {relatedEdges.length > 0 && (
-            <div className="pt-2">
-              <div className="text-xs uppercase font-bold text-secondary mb-3">Edges & Evidence</div>
-              <div className="flex flex-col gap-3">
-                {relatedEdges.map(e => (
-                  <div key={e.id} className="bg-card border border-subtle p-3 rounded-md">
-                    <div className="flex justify-between items-center mb-2">
-                      <div className="font-mono text-xs text-cyan-400">{e.relationship}</div>
-                      <div className="text-xs badge badge-info">{(e.strength * 100).toFixed(0)}% Str</div>
+          <div className="space-y-6">
+            {Object.keys(selectedNode.metadata).length > 0 && (
+              <div>
+                <h4 className="text-sm font-semibold text-secondary mb-3 uppercase tracking-wider">Properties</h4>
+                <div className="space-y-2">
+                  {Object.entries(selectedNode.metadata).map(([k, v]) => (
+                    <div key={k} className="flex flex-col">
+                      <span className="text-xs text-white/40 font-mono">{k}</span>
+                      <span className="text-sm">{String(v)}</span>
                     </div>
-                    {e.evidence && e.evidence.length > 0 && (
-                      <ul className="text-xs text-secondary pl-4 list-disc space-y-1">
-                        {e.evidence.map((ev, i) => <li key={i}>{ev}</li>)}
-                      </ul>
-                    )}
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+            
+            {relatedEdges.length > 0 && (
+              <div>
+                <h4 className="text-sm font-semibold text-secondary mb-3 uppercase tracking-wider">Related Evidence</h4>
+                <div className="space-y-4">
+                  {relatedEdges.map(edge => {
+                    const isSource = edge.source === selectedNode.id;
+                    const otherNode = nodes.find(n => n.id === (isSource ? edge.target : edge.source));
+                    if (!otherNode) return null;
+                    return (
+                      <div key={edge.id} className="bg-white/5 rounded p-3 border border-white/5">
+                        <div className="text-xs text-primary mb-2">
+                          {isSource ? `→ ${edge.relationship} →` : `← ${edge.relationship} ←`} {otherNode.label}
+                        </div>
+                        <ul className="text-sm space-y-1 pl-4 list-disc text-white/80">
+                          {edge.evidence.map((ev, i) => (
+                            <li key={i}>{ev}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

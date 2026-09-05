@@ -10,7 +10,7 @@ import { HealthResponse } from './types/health';
 import { AnomalyItem, AnomalySummaryResponse } from './types/anomaly';
 // New components will be imported here as we build them
 // import { RootCauseSection } from './components/RootCauseSection';
-// import { InvestigationGraphView } from './components/InvestigationGraphView';
+import { InvestigationGraphView } from './components/InvestigationGraphView';
 // import { FinancialImpactSection } from './components/FinancialImpactSection';
 
 export const App: React.FC = () => {
@@ -129,8 +129,11 @@ export const App: React.FC = () => {
              <div className="page-view">
                <div className="glass-card p-6">
                  <h2 className="text-xl font-bold mb-4">Investigation Graph</h2>
-                 <p className="text-secondary">Select an anomaly from the Anomalies tab to view its investigation graph.</p>
-                 {/* Will render InvestigationGraphView here */}
+                 {selectedAnomalyId ? (
+                   <InvestigationGraphView anomalyId={selectedAnomalyId} />
+                 ) : (
+                   <p className="text-secondary">Select an anomaly from the Anomalies tab to view its investigation graph.</p>
+                 )}
                </div>
              </div>
           )}
