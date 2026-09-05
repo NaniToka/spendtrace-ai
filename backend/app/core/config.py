@@ -1,3 +1,4 @@
+import os
 from pydantic import BaseModel
 
 
@@ -30,13 +31,15 @@ class Settings(BaseModel):
     TAGLINE: str = "Don't just detect cloud cost spikes. Explain why they happened."
     VERSION: str = "0.1.0"
     API_V1_STR: str = "/api/v1"
+    
+    # Load CORS origins from environment variable, fallback to default local list
     CORS_ORIGINS: list[str] = [
-        "http://localhost:5173",
-        "http://localhost:3000",
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:3000",
-        "*",
+        origin.strip() for origin in os.getenv(
+            "BACKEND_CORS_ORIGINS", 
+            "http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173,http://127.0.0.1:3000,*"
+        ).split(",") if origin.strip()
     ]
+    
     ANOMALY: AnomalyThresholds = AnomalyThresholds()
     ROOT_CAUSE: RootCauseScoringWeights = RootCauseScoringWeights()
     OPENAI_API_KEY: str | None = None

@@ -1,0 +1,19 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    ports:
+      - "8000:8000"
+    environment:
+      - BACKEND_CORS_ORIGINS=http://localhost:5173,http://localhost:80,http://localhost,http://127.0.0.1,*
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+    
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+      args:
+        - VITE_API_BASE_URL=http://localhost:8000/api/v1
+    ports:
+      - "80:80"

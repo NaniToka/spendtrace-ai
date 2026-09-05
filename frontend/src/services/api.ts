@@ -7,8 +7,7 @@ import { ExplanationResponse } from '../types/explanation';
 import { FinancialImpactResponse } from '../types/financial_impact';
 import { ExecutiveSummaryResponse } from '../types/executive_summary';
 
-const API_BASE = '/api/v1';
-
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api/v1';
 export async function fetchHealth(): Promise<HealthResponse> {
   const res = await fetch(`${API_BASE}/health`);
   if (!res.ok) {
