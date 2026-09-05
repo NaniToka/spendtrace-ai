@@ -1,22 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Sparkles,
-  GitCommit,
-  Server,
-  Layers,
-  Activity,
-  CheckCircle2,
-  AlertTriangle,
-  ArrowRight,
-  ShieldCheck,
+  ShieldCheck, AlertTriangle, ArrowRight, Activity, GitCommit, Search, CheckCircle2, DollarSign
 } from 'lucide-react';
 import { AnomalyItem } from '../types/anomaly';
 import { ExecutiveSummaryResponse } from '../types/executive_summary';
 import { fetchExecutiveSummary } from '../services/api';
 import { AIExplanationSection } from './AIExplanationSection';
 import { FinancialImpactSection } from './FinancialImpactSection';
-import { InvestigationTimeline } from './InvestigationTimeline';
-import { RootCauseCandidate } from '../types/root_cause';
+import { RootCauseSection } from './RootCauseSection';
+import { InvestigationGraphView } from './InvestigationGraphView';
 
 interface ExecutiveDashboardProps {
   anomalies: AnomalyItem[];
@@ -68,187 +60,156 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
     };
   }, [activeAnomalyId]);
 
-  const handleSelectChange = (id: string) => {
-    setActiveAnomalyId(id);
-    if (onSelectAnomaly) {
-      onSelectAnomaly(id);
-    }
-  };
-
-  const getCategoryIcon = (category: string) => {
-    switch (category) {
-      case 'DEPLOYMENT':
-      case 'EVENT':
-        return <GitCommit size={16} color="var(--color-purple)" />;
-      case 'RESOURCE':
-        return <Server size={16} color="var(--color-cyan)" />;
-      case 'USAGE':
-        return <Activity size={16} color="var(--color-emerald)" />;
-      case 'SERVICE':
-        return <Layers size={16} color="var(--color-primary)" />;
-      default:
-        return <Sparkles size={16} color="var(--color-amber)" />;
-    }
-  };
-
-  const getConfidenceBadge = (level: string, confidence: number) => {
-    const pct = Math.round(confidence * 100);
-    switch (level) {
-      case 'HIGH':
-        return <span className="badge badge-critical">{pct}% Confidence (High)</span>;
-      case 'MEDIUM':
-        return <span className="badge badge-medium">{pct}% Confidence (Medium)</span>;
-      default:
-        return <span className="badge badge-low">{pct}% Confidence (Low)</span>;
-    }
-  };
-
   if (anomalies.length === 0) {
     return (
-      <div className="section-panel glass-card">
-        <div className="section-panel-header">
-          <div className="section-panel-title">
-            <ShieldCheck size={20} color="var(--color-primary)" />
-            <span>Executive Investigation Dashboard</span>
-          </div>
-        </div>
-        <p className="text-secondary" style={{ fontSize: '0.85rem' }}>
-          No active cost anomalies detected to investigate.
-        </p>
+      <div className="glass-card p-6 text-center">
+        <ShieldCheck size={32} className="mx-auto text-primary mb-4" />
+        <h2 className="text-xl font-bold">No Active Anomalies</h2>
+        <p className="text-secondary mt-2">There are currently no cost anomalies requiring investigation.</p>
       </div>
     );
   }
 
+  const getSeverityBadgeClass = (severity: string) => {
+    switch (severity.toUpperCase()) {
+      case 'CRITICAL': return 'badge-critical';
+      case 'HIGH': return 'badge-warning';
+      case 'MEDIUM': return 'badge-info';
+      default: return 'badge-primary';
+    }
+  };
+
   return (
-    <div className="section-panel glass-card">
-      <div className="section-panel-header">
-        <div className="section-panel-title">
-          <ShieldCheck size={20} color="var(--color-primary)" />
-          <span>Executive Investigation Dashboard</span>
+    <div className="investigation-workspace flex-col gap-6">
+      
+      {/* Investigation Selector & Visual Workflow */}
+      <div className="glass-card p-6">
+        <div className="flex justify-between items-center mb-8">
+          <div className="flex items-center gap-3">
+            <Search className="text-primary" size={24} />
+            <h2 className="text-xl font-bold">Investigation Workspace</h2>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-secondary">Active Incident:</span>
+            <select
+              value={activeAnomalyId}
+              onChange={(e) => {
+                setActiveAnomalyId(e.target.value);
+                if (onSelectAnomaly) onSelectAnomaly(e.target.value);
+              }}
+              className="bg-card border border-subtle text-primary p-2 rounded-sm text-sm outline-none"
+            >
+              {anomalies.map((a) => (
+                <option key={a.anomaly_id} value={a.anomaly_id}>
+                  {a.service} (+${a.absolute_delta.toLocaleString()})
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
-        {/* Anomaly Selector */}
-        <div className="filter-controls">
-          <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', alignSelf: 'center' }}>
-            Investigating Anomaly:
-          </label>
-          <select
-            value={activeAnomalyId}
-            onChange={(e) => handleSelectChange(e.target.value)}
-            className="filter-select mono"
-          >
-            {anomalies.map((a) => (
-              <option key={a.anomaly_id} value={a.anomaly_id}>
-                {a.timestamp.slice(0, 10)} — {a.service} (+${a.absolute_delta.toFixed(2)})
-              </option>
-            ))}
-          </select>
+        {/* Visual Vertical Workflow */}
+        <div className="investigation-workflow">
+          <div className="workflow-step completed">
+            <div className="workflow-icon"><AlertTriangle size={16} /></div>
+            <span className="workflow-label">Anomaly Detected</span>
+          </div>
+          <div className="workflow-step completed">
+            <div className="workflow-icon"><Activity size={16} /></div>
+            <span className="workflow-label">Root Cause Analysis</span>
+          </div>
+          <div className="workflow-step completed">
+            <div className="workflow-icon"><GitCommit size={16} /></div>
+            <span className="workflow-label">Evidence Graph</span>
+          </div>
+          <div className="workflow-step active">
+            <div className="workflow-icon"><CheckCircle2 size={16} /></div>
+            <span className="workflow-label">AI Explanation</span>
+          </div>
+          <div className="workflow-step">
+            <div className="workflow-icon"><DollarSign size={16} /></div>
+            <span className="workflow-label">Financial Impact</span>
+          </div>
         </div>
       </div>
 
       {loading ? (
-        <div className="loading-container">Aggregating investigation intelligence...</div>
+        <div className="glass-card p-12 flex justify-center items-center text-secondary">
+          Aggregating investigation intelligence...
+        </div>
       ) : error ? (
         <div className="alert-banner">{error}</div>
-      ) : summaryData ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      ) : summaryData && summaryData.anomaly ? (
+        <div className="flex-col gap-6">
           
-          {/* Section A: Anomaly Header */}
-          {summaryData.anomaly && (
-            <div style={{ padding: '16px', backgroundColor: 'rgba(255, 255, 255, 0.02)', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.05)', display: 'flex', flexWrap: 'wrap', gap: '20px', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-                <div style={{ padding: '12px', backgroundColor: 'rgba(239, 68, 68, 0.1)', borderRadius: '8px' }}>
-                  <AlertTriangle size={24} color="#ef4444" />
-                </div>
-                <div>
-                  <div style={{ fontSize: '1.2rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
-                    {summaryData.anomaly.service} Anomaly
-                  </div>
-                  <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    <span className="mono">{summaryData.anomaly.resource_id}</span>
-                    &bull;
-                    <span>{summaryData.anomaly.region}</span>
-                    &bull;
-                    <span style={{ color: 'var(--color-primary)' }}>{summaryData.anomaly.team} Team</span>
-                  </div>
-                </div>
+          {/* Anomaly Summary Header */}
+          <div className="glass-card p-6 flex justify-between items-center border-l-4" style={{ borderLeftColor: summaryData.anomaly.severity === 'CRITICAL' ? 'var(--color-critical)' : 'var(--color-warning)' }}>
+            <div className="flex items-center gap-4">
+              <div className="bg-surface p-3 rounded-md border border-subtle">
+                <AlertTriangle size={28} className={summaryData.anomaly.severity === 'CRITICAL' ? 'text-critical' : 'text-warning'} />
               </div>
-              <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-end' }}>
-                <div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Expected</div>
-                  <div className="mono" style={{ fontSize: '1.1rem' }}>${summaryData.anomaly.expected_cost.toFixed(2)}</div>
+              <div className="flex-col gap-1">
+                <div className="text-xl font-bold flex items-center gap-3">
+                  {summaryData.anomaly.service} Incident
+                  <span className={`badge ${getSeverityBadgeClass(summaryData.anomaly.severity)}`}>
+                    {summaryData.anomaly.severity} Priority
+                  </span>
                 </div>
-                <ArrowRight size={16} color="var(--text-muted)" style={{ marginBottom: '4px' }} />
-                <div>
-                  <div style={{ fontSize: '0.8rem', color: '#ef4444' }}>Actual Cost</div>
-                  <div className="mono" style={{ fontSize: '1.3rem', color: '#ef4444', fontWeight: 'bold' }}>${summaryData.anomaly.actual_cost.toFixed(2)}</div>
+                <div className="text-sm text-secondary flex items-center gap-2">
+                  <span className="font-mono">{summaryData.anomaly.resource_id}</span> • 
+                  <span>{summaryData.anomaly.region}</span> • 
+                  <span className="text-cyan">{summaryData.anomaly.team}</span>
                 </div>
               </div>
             </div>
-          )}
+            <div className="flex gap-6 text-right">
+              <div className="flex-col">
+                <span className="text-sm text-secondary">Expected Cost</span>
+                <span className="font-mono text-lg font-medium">${summaryData.anomaly.expected_cost.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+              </div>
+              <div className="flex items-center justify-center">
+                <ArrowRight size={20} className="text-muted" />
+              </div>
+              <div className="flex-col">
+                <span className="text-sm text-critical">Actual Cost</span>
+                <span className="font-mono text-2xl font-bold text-critical">${summaryData.anomaly.actual_cost.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+              </div>
+              <div className="flex-col pl-4 border-l border-subtle">
+                <span className="text-sm text-warning">Excess Spend</span>
+                <span className="font-mono text-xl font-bold text-warning">+${summaryData.anomaly.absolute_delta.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                <span className="text-xs text-warning">+{summaryData.anomaly.percentage_delta.toFixed(1)}%</span>
+              </div>
+            </div>
+          </div>
 
-          {/* Section B: AI Explanation (What & Why) */}
+          {/* AI Explanation & Report */}
           {summaryData.explanation && (
             <AIExplanationSection explanation={summaryData.explanation} />
           )}
 
-          {/* Section C: Why? (Top Root Causes) */}
-          {summaryData.top_root_causes.length > 0 && (
-            <div>
-              <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Activity size={18} color="var(--color-cyan)" />
-                <span>Top Probable Root Causes</span>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '16px' }}>
-                {summaryData.top_root_causes.map((cand: RootCauseCandidate) => (
-                  <div key={cand.rank} className="glass-card" style={{ padding: '16px', borderRadius: '8px', borderLeft: `3px solid ${cand.rank === 1 ? '#ef4444' : 'var(--color-secondary)'}` }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span className="candidate-rank-badge">#{cand.rank}</span>
-                        {getCategoryIcon(cand.category)}
-                        <span style={{ fontWeight: 600, fontSize: '0.95rem' }}>{cand.title}</span>
-                      </div>
-                    </div>
-                    <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: '12px' }}>
-                      {cand.description}
-                    </p>
-                    <div style={{ marginBottom: '12px' }}>
-                      {getConfidenceBadge(cand.confidence_level, cand.confidence)}
-                    </div>
-                    {/* Primary Evidence */}
-                    {cand.evidence.length > 0 && (
-                      <div style={{ fontSize: '0.8rem', backgroundColor: 'rgba(255, 255, 255, 0.02)', padding: '8px 12px', borderRadius: '6px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-primary)', marginBottom: '4px' }}>
-                          <CheckCircle2 size={12} color="var(--color-emerald)" />
-                          <span>Primary Evidence:</span>
-                        </div>
-                        <span style={{ color: 'var(--text-secondary)' }}>{cand.evidence[0]}</span>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
+          {/* Grid Layout for Root Cause & Impact */}
+          <div className="grid grid-cols-2 gap-6" style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '24px' }}>
+            
+            {/* Left: Root Cause & Investigation Graph */}
+            <div className="flex-col gap-6">
+              <RootCauseSection candidates={summaryData.top_root_causes} />
+              {summaryData.graph && (
+                <InvestigationGraphView graph={summaryData.graph} />
+              )}
             </div>
-          )}
 
-          {/* Section D: Evidence Timeline */}
-          {summaryData.graph && (
-            <div>
-              <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <GitCommit size={18} color="var(--color-purple)" />
-                <span>Evidence Timeline</span>
-              </div>
-              <InvestigationTimeline graph={summaryData.graph} />
+            {/* Right: Financial Impact & Timeline */}
+            <div className="flex-col gap-6">
+              {summaryData.financial_impact && (
+                <FinancialImpactSection impact={summaryData.financial_impact} />
+              )}
             </div>
-          )}
-
-          {/* Section E: Financial Impact */}
-          {summaryData.financial_impact && (
-            <FinancialImpactSection impact={summaryData.financial_impact} />
-          )}
-
+            
+          </div>
+          
         </div>
       ) : null}
+
     </div>
   );
 };

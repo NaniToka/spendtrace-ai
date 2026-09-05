@@ -8,6 +8,10 @@ import { fetchBilling, fetchHealth, fetchAnomalies, fetchAnomaliesSummary } from
 import { BillingRecord } from './types/billing';
 import { HealthResponse } from './types/health';
 import { AnomalyItem, AnomalySummaryResponse } from './types/anomaly';
+// New components will be imported here as we build them
+// import { RootCauseSection } from './components/RootCauseSection';
+// import { InvestigationGraphView } from './components/InvestigationGraphView';
+// import { FinancialImpactSection } from './components/FinancialImpactSection';
 
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('overview');
@@ -66,12 +70,20 @@ export const App: React.FC = () => {
 
   return (
     <div className="layout-root">
-      <Header health={health} />
+      <Sidebar 
+        activeTab={activeTab} 
+        setActiveTab={setActiveTab} 
+        anomalyCount={anomaliesSummary?.total_anomalies || 0}
+      />
 
-      <div className="layout-body">
-        <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+      <div className="layout-main-wrapper">
+        <Header 
+          health={health} 
+          activeTab={activeTab} 
+          onRefresh={() => loadData()}
+        />
 
-        <main className="layout-main">
+        <main className="layout-main-content">
           {error && (
             <div className="alert-banner">
               <strong>Connection Warning:</strong> {error}
@@ -112,6 +124,26 @@ export const App: React.FC = () => {
               />
             </div>
           )}
+          
+          {activeTab === 'investigation' && (
+             <div className="page-view">
+               <div className="glass-card p-6">
+                 <h2 className="text-xl font-bold mb-4">Investigation Graph</h2>
+                 <p className="text-secondary">Select an anomaly from the Anomalies tab to view its investigation graph.</p>
+                 {/* Will render InvestigationGraphView here */}
+               </div>
+             </div>
+          )}
+
+          {activeTab === 'financial' && (
+             <div className="page-view">
+               <div className="glass-card p-6">
+                 <h2 className="text-xl font-bold mb-4">Financial Impact</h2>
+                 <p className="text-secondary">Detailed financial impact will appear here.</p>
+                 {/* Will render FinancialImpactSection here */}
+               </div>
+             </div>
+          )}
 
           {activeTab === 'billing' && (
             <div className="page-view">
@@ -129,15 +161,24 @@ export const App: React.FC = () => {
             </div>
           )}
 
-          {activeTab === 'settings' && (
-            <div className="section-panel glass-card">
-              <div className="section-panel-header">
-                <div className="section-panel-title">Root-Cause Scoring Settings</div>
+          {activeTab === 'reports' && (
+            <div className="glass-card p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="font-bold text-xl">Generated Reports</h2>
               </div>
-              <p className="section-panel-desc">
+              <p className="text-secondary">No reports generated yet.</p>
+            </div>
+          )}
+
+          {activeTab === 'settings' && (
+            <div className="glass-card p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="font-bold text-xl">Root-Cause Scoring Settings</h2>
+              </div>
+              <p className="text-secondary mb-4">
                 Centralized deterministic evidence weights for Cost Contribution (35%), Usage Delta (25%), Temporal Proximity (25%), and Resource Concentration (15%).
               </p>
-              <div className="badge badge-pending">Confidence High Threshold: $\ge 75\%$ | Medium: $\ge 50\%$</div>
+              <div className="badge badge-warning">Confidence High Threshold: ≥ 75% | Medium: ≥ 50%</div>
             </div>
           )}
         </main>

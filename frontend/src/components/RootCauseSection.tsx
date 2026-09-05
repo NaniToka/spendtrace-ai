@@ -1,90 +1,25 @@
-import React, { useEffect, useState } from 'react';
-import {
-  Sparkles,
-  GitCommit,
-  Server,
-  Layers,
-  Activity,
-  CheckCircle2,
-  TrendingUp,
-} from 'lucide-react';
-import { AnomalyItem } from '../types/anomaly';
-import { RootCauseResponse } from '../types/root_cause';
-import { InvestigationGraphResponse } from '../types/graph';
-import { ExplanationResponse } from '../types/explanation';
-import { FinancialImpactResponse } from '../types/financial_impact';
-import { fetchRootCauses, fetchInvestigationGraph, fetchExplanation, fetchFinancialImpact } from '../services/api';
-import { AIExplanationSection } from './AIExplanationSection';
-import { FinancialImpactSection } from './FinancialImpactSection';
-import { InvestigationGraphView } from './InvestigationGraphView';
-import { InvestigationTimeline } from './InvestigationTimeline';
+import React from 'react';
+import { Sparkles, GitCommit, Server, Layers, Activity, TrendingUp, CheckCircle2 } from 'lucide-react';
+import { RootCauseCandidate } from '../types/root_cause';
 
 interface RootCauseSectionProps {
-  anomalies: AnomalyItem[];
-  selectedAnomalyId?: string;
-  onSelectAnomaly?: (id: string) => void;
+  candidates: RootCauseCandidate[];
 }
 
-export const RootCauseSection: React.FC<RootCauseSectionProps> = ({
-  anomalies,
-  selectedAnomalyId,
-  onSelectAnomaly,
-}) => {
-  const [activeAnomalyId, setActiveAnomalyId] = useState<string>('');
-  const [rootCauseData, setRootCauseData] = useState<RootCauseResponse | null>(null);
-  const [graphData, setGraphData] = useState<InvestigationGraphResponse | null>(null);
-  const [explanationData, setExplanationData] = useState<ExplanationResponse | null>(null);
-  const [financialImpactData, setFinancialImpactData] = useState<FinancialImpactResponse | null>(null);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // Default to the first anomaly if none selected
-  useEffect(() => {
-    if (selectedAnomalyId) {
-      setActiveAnomalyId(selectedAnomalyId);
-    } else if (anomalies.length > 0 && !activeAnomalyId) {
-      setActiveAnomalyId(anomalies[0].anomaly_id);
-    }
-  }, [selectedAnomalyId, anomalies]);
-
-  useEffect(() => {
-    if (!activeAnomalyId) return;
-
-    let isMounted = true;
-    setLoading(true);
-    setError(null);
-
-    Promise.all([
-      fetchRootCauses(activeAnomalyId),
-      fetchInvestigationGraph(activeAnomalyId),
-      fetchExplanation(activeAnomalyId),
-      fetchFinancialImpact(activeAnomalyId)
-    ])
-      .then(([rcData, gData, expData, fiData]) => {
-        if (isMounted) {
-          setRootCauseData(rcData);
-          setGraphData(gData);
-          setExplanationData(expData);
-          setFinancialImpactData(fiData);
-          setLoading(false);
-        }
-      })
-      .catch((err) => {
-        if (isMounted) {
-          setError(err.message || 'Failed to load root cause investigation');
-          setLoading(false);
-        }
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [activeAnomalyId]);
-
-  const handleSelectChange = (id: string) => {
-    setActiveAnomalyId(id);
-    if (onSelectAnomaly) {
-      onSelectAnomaly(id);
+export const RootCauseSection: React.FC<RootCauseSectionProps> = ({ candidates }) => {
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case 'DEPLOYMENT':
+      case 'EVENT':
+        return <GitCommit size={16} className="text-purple-400" />;
+      case 'RESOURCE':
+        return <Server size={16} className="text-cyan-400" />;
+      case 'USAGE':
+        return <Activity size={16} className="text-emerald-400" />;
+      case 'SERVICE':
+        return <Layers size={16} className="text-primary-light" />;
+      default:
+        return <Sparkles size={16} className="text-warning" />;
     }
   };
 
@@ -92,216 +27,89 @@ export const RootCauseSection: React.FC<RootCauseSectionProps> = ({
     const pct = Math.round(confidence * 100);
     switch (level) {
       case 'HIGH':
-        return <span className="badge badge-critical">{pct}% Confidence (High)</span>;
+        return <span className="badge badge-critical">{pct}% Confidence</span>;
       case 'MEDIUM':
-        return <span className="badge badge-medium">{pct}% Confidence (Medium)</span>;
+        return <span className="badge badge-warning">{pct}% Confidence</span>;
       default:
-        return <span className="badge badge-low">{pct}% Confidence (Low)</span>;
+        return <span className="badge badge-info">{pct}% Confidence</span>;
     }
   };
 
-  const getCategoryIcon = (category: string) => {
-    switch (category) {
-      case 'DEPLOYMENT':
-      case 'EVENT':
-        return <GitCommit size={16} color="var(--color-purple)" />;
-      case 'RESOURCE':
-        return <Server size={16} color="var(--color-cyan)" />;
-      case 'USAGE':
-        return <Activity size={16} color="var(--color-emerald)" />;
-      case 'SERVICE':
-        return <Layers size={16} color="var(--color-primary)" />;
-      default:
-        return <Sparkles size={16} color="var(--color-amber)" />;
-    }
-  };
-
-  if (anomalies.length === 0) {
-    return (
-      <div className="section-panel glass-card">
-        <div className="section-panel-header">
-          <div className="section-panel-title">
-            <Sparkles size={20} color="var(--color-purple)" />
-            <span>Root-Cause Intelligence Engine</span>
-          </div>
-        </div>
-        <p className="text-secondary" style={{ fontSize: '0.85rem' }}>
-          No active cost anomalies detected to investigate.
-        </p>
-      </div>
-    );
-  }
-
-  const primaryCandidate = rootCauseData?.candidates?.[0];
-  const summary = rootCauseData?.investigation_summary;
+  if (!candidates || candidates.length === 0) return null;
 
   return (
-    <div className="section-panel glass-card">
-      <div className="section-panel-header">
-        <div className="section-panel-title">
-          <Sparkles size={20} color="var(--color-purple)" />
-          <span>Root-Cause Intelligence Engine</span>
-        </div>
-
-        {/* Anomaly Selector */}
-        <div className="filter-controls">
-          <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', alignSelf: 'center' }}>
-            Investigating Anomaly:
-          </label>
-          <select
-            value={activeAnomalyId}
-            onChange={(e) => handleSelectChange(e.target.value)}
-            className="filter-select mono"
-          >
-            {anomalies.map((a) => (
-              <option key={a.anomaly_id} value={a.anomaly_id}>
-                {a.timestamp.slice(0, 10)} — {a.service} (+${a.absolute_delta.toFixed(2)})
-              </option>
-            ))}
-          </select>
-        </div>
+    <div className="glass-card p-6">
+      <div className="flex items-center gap-3 mb-6">
+        <TrendingUp size={20} className="text-primary" />
+        <h2 className="text-lg font-bold">Ranked Root Causes</h2>
       </div>
 
-      {loading ? (
-        <div className="loading-container">Correlating billing dimensions and deployment events...</div>
-      ) : error ? (
-        <div className="alert-banner">{error}</div>
-      ) : rootCauseData ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          {/* AI Explanation Banner */}
-          {explanationData && (
-            <AIExplanationSection explanation={explanationData} />
-          )}
-
-          {/* Financial Impact Simulator */}
-          {financialImpactData && (
-            <FinancialImpactSection impact={financialImpactData} />
-          )}
-
-          {/* Investigation Graph & Timeline */}
-          {graphData && (
-            <>
-              <InvestigationGraphView graph={graphData} />
-              <InvestigationTimeline graph={graphData} />
-            </>
-          )}
-
-          {/* Top Banner: Primary Suspected Cause & Signal */}
-          <div className="primary-suspect-card">
-            <div className="primary-suspect-header">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <span className="badge badge-accent">PRIMARY SUSPECTED CAUSE</span>
-                {primaryCandidate && getConfidenceBadge(primaryCandidate.confidence_level, primaryCandidate.confidence)}
+      <div className="flex flex-col gap-4">
+        {candidates.map((cand) => (
+          <div key={cand.rank} className="bg-surface border border-subtle rounded-md p-5 relative overflow-hidden">
+            {cand.rank === 1 && (
+              <div className="absolute top-0 left-0 w-1 h-full bg-critical" />
+            )}
+            
+            <div className="flex justify-between items-start mb-3">
+              <div className="flex items-center gap-3">
+                <span className="flex items-center justify-center bg-primary text-white font-bold w-6 h-6 rounded-full text-xs">
+                  {cand.rank}
+                </span>
+                <div className="bg-card p-1.5 rounded-md border border-subtle">
+                  {getCategoryIcon(cand.category)}
+                </div>
+                <h3 className="font-bold text-primary">{cand.title}</h3>
               </div>
-              <span className="mono" style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                Anomaly ID: {rootCauseData.anomaly.anomaly_id}
-              </span>
+              <div className="flex items-center gap-2">
+                {cand.temporal_correlation !== 'NONE' && (
+                  <span className="badge badge-primary mono text-[10px]">
+                    {cand.temporal_correlation}
+                  </span>
+                )}
+                {getConfidenceBadge(cand.confidence_level, cand.confidence)}
+              </div>
             </div>
 
-            <div className="primary-suspect-title">
-              {primaryCandidate ? primaryCandidate.title : 'Multi-Factor Spend Surge'}
-            </div>
-
-            <p className="primary-suspect-desc">
-              {summary?.strongest_signal}
+            <p className="text-sm text-secondary mb-4 line-height-relaxed">
+              {cand.description}
             </p>
 
-            {/* Dimensional Signal Badges */}
-            {summary && (
-              <div className="summary-tags-row">
-                <div className="summary-tag">
-                  <span className="tag-label">Primary Service:</span>
-                  <span className="tag-val text-cyan">{summary.primary_service}</span>
-                </div>
-                <div className="summary-tag">
-                  <span className="tag-label">Region:</span>
-                  <span className="tag-val">{summary.primary_region}</span>
-                </div>
-                <div className="summary-tag">
-                  <span className="tag-label">Resource:</span>
-                  <span className="tag-val mono text-muted">{summary.primary_resource.split('/').pop()}</span>
-                </div>
-                <div className="summary-tag">
-                  <span className="tag-label">Attributed Team:</span>
-                  <span className="tag-val" style={{ color: 'var(--color-primary)' }}>{summary.primary_team}</span>
-                </div>
-                <div className="summary-tag">
-                  <span className="tag-label">Correlated Events:</span>
-                  <span className="tag-val mono" style={{ color: summary.correlated_events_count > 0 ? 'var(--color-purple)' : 'inherit' }}>
-                    {summary.correlated_events_count}
-                  </span>
+            {cand.evidence.length > 0 && (
+              <div className="bg-card p-3 rounded-md border border-subtle mb-4">
+                <div className="text-xs uppercase tracking-wider text-muted font-bold mb-2">Primary Evidence</div>
+                <div className="flex items-start gap-2 text-sm text-secondary">
+                  <CheckCircle2 size={14} className="text-emerald-400 mt-0.5 flex-shrink-0" />
+                  <span>{cand.evidence[0]}</span>
                 </div>
               </div>
             )}
-          </div>
 
-          {/* Ranked Root Cause Candidates List */}
-          <div>
-            <div style={{ fontSize: '0.92rem', fontWeight: 700, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <TrendingUp size={16} color="var(--color-cyan)" />
-              <span>Ranked Probable Root-Cause Candidates</span>
-            </div>
-
-            <div className="candidates-list">
-              {rootCauseData.candidates.map((cand) => (
-                <div key={`${cand.rank}-${cand.category}`} className="candidate-card glass-card">
-                  <div className="candidate-card-header">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <span className="candidate-rank-badge">#{cand.rank}</span>
-                      <span className="candidate-cat-icon">{getCategoryIcon(cand.category)}</span>
-                      <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>{cand.title}</span>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      {cand.temporal_correlation !== 'NONE' && (
-                        <span className="badge badge-accent mono" style={{ fontSize: '0.7rem' }}>
-                          Temporal: {cand.temporal_correlation}
-                        </span>
-                      )}
-                      {getConfidenceBadge(cand.confidence_level, cand.confidence)}
-                    </div>
-                  </div>
-
-                  <p style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', margin: '10px 0', lineHeight: 1.45 }}>
-                    {cand.description}
-                  </p>
-
-                  {/* Measurable Evidence List */}
-                  <div className="evidence-container">
-                    <div className="evidence-title">Measurable Correlation Evidence:</div>
-                    <ul className="evidence-list">
-                      {cand.evidence.map((item, idx) => (
-                        <li key={idx} className="evidence-item">
-                          <CheckCircle2 size={13} color="var(--color-emerald)" style={{ flexShrink: 0, marginTop: '2px' }} />
-                          <span>{item}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  {/* Candidate Metrics Footer */}
-                  <div className="candidate-metrics-footer">
-                    <div>
-                      <span className="footer-metric-label">Cost Baseline:</span>{' '}
-                      <span className="mono">${cand.cost_before.toFixed(2)} $\rightarrow$ ${cand.cost_after.toFixed(2)} (+${cand.cost_delta.toFixed(2)})</span>
-                    </div>
-                    {cand.usage_delta_percentage > 0 && (
-                      <div>
-                        <span className="footer-metric-label">Usage Surge:</span>{' '}
-                        <span className="mono" style={{ color: 'var(--color-emerald)', fontWeight: 600 }}>+{cand.usage_delta_percentage.toFixed(1)}%</span>
-                      </div>
-                    )}
-                    <div>
-                      <span className="footer-metric-label">Evidence Score:</span>{' '}
-                      <span className="mono" style={{ fontWeight: 700, color: 'var(--color-purple)' }}>{cand.evidence_score.toFixed(1)} / 100</span>
-                    </div>
-                  </div>
+            <div className="flex flex-wrap gap-6 text-xs text-secondary pt-3 border-t border-subtle">
+              <div className="flex flex-col gap-1">
+                <span className="text-muted">Cost Impact</span>
+                <span className="font-mono text-primary font-medium">
+                  ${cand.cost_before.toFixed(2)} → ${cand.cost_after.toFixed(2)}
+                </span>
+              </div>
+              {cand.usage_delta_percentage > 0 && (
+                <div className="flex flex-col gap-1">
+                  <span className="text-muted">Usage Surge</span>
+                  <span className="font-mono text-success font-medium">
+                    +{cand.usage_delta_percentage.toFixed(1)}%
+                  </span>
                 </div>
-              ))}
+              )}
+              <div className="flex flex-col gap-1">
+                <span className="text-muted">Evidence Score</span>
+                <span className="font-mono font-medium text-purple-400">
+                  {cand.evidence_score.toFixed(1)} / 100
+                </span>
+              </div>
             </div>
           </div>
-        </div>
-      ) : null}
+        ))}
+      </div>
     </div>
   );
 };
