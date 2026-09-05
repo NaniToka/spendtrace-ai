@@ -1,6 +1,8 @@
 import json
 import httpx
 import logging
+import os
+import time
 from typing import List
 from backend.app.schemas.anomaly import AnomalyItemSchema
 from backend.app.schemas.root_cause import RootCauseCandidateSchema
@@ -12,8 +14,13 @@ logger = logging.getLogger(__name__)
 
 class ExplanationService:
     def __init__(self):
-        self.api_key = settings.OPENAI_API_KEY
-        self.model = "gpt-4o-mini"
+        self.api_key = os.getenv("GEMINI_API_KEY") or settings.OPENAI_API_KEY
+        self.is_gemini = bool(os.getenv("GEMINI_API_KEY"))
+        self.model = "gemini-1.5-flash" if self.is_gemini else "gpt-4o-mini"
+        self.endpoint = (
+            "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions" 
+            if self.is_gemini else "https://api.openai.com/v1/chat/completions"
+        )
         
     def generate_explanation(
         self, 
@@ -64,21 +71,32 @@ class ExplanationService:
             "response_format": {"type": "json_object"}
         }
         
-        with httpx.Client(timeout=30.0) as client:
-            response = client.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
-            response.raise_for_status()
-            data = response.json()
-            
-            content = data["choices"][0]["message"]["content"]
-            result = json.loads(content)
-            
-            return ExplanationResponseSchema(
-                what_happened=result.get("what_happened", "Summary unavailable."),
-                why_it_happened=result.get("why_it_happened", "Explanation unavailable."),
-                key_evidence=result.get("key_evidence", []),
-                confidence=float(result.get("confidence", 0.0)),
-                recommended_next_step=result.get("recommended_next_step", "N/A")
-            )
+        max_attempts = 2
+        for attempt in range(max_attempts):
+            try:
+                with httpx.Client(timeout=30.0) as client:
+                    response = client.post(self.endpoint, headers=headers, json=payload)
+                    response.raise_for_status()
+                    data = response.json()
+                    
+                    content = data["choices"][0]["message"]["content"]
+                    result = json.loads(content)
+                    
+                    return ExplanationResponseSchema(
+                        what_happened=result.get("what_happened", "Summary unavailable."),
+                        why_it_happened=result.get("why_it_happened", "Explanation unavailable."),
+                        key_evidence=result.get("key_evidence", []),
+                        confidence=float(result.get("confidence", 0.0)),
+                        recommended_next_step=result.get("recommended_next_step", "N/A")
+                    )
+            except Exception as e:
+                error_details = str(e)
+                if hasattr(e, 'response') and hasattr(e.response, 'text'):
+                    error_details += f" | Response: {e.response.text}"
+                logger.warning(f"LLM API attempt {attempt + 1} failed: {error_details}")
+                if attempt == max_attempts - 1:
+                    raise e
+                time.sleep(1)
             
     def _build_prompt(self, anomaly: AnomalyItemSchema, candidates: List[RootCauseCandidateSchema], graph: InvestigationGraphResponse) -> str:
         edges_str = "\n".join([f"- {e.source} -> {e.target} [{e.relationship}] (Strength: {e.strength}) Evidence: {'; '.join(e.evidence)}" for e in graph.edges])
@@ -104,7 +122,7 @@ class ExplanationService:
         top_cand = candidates[0]
         
         service_name = graph.summary.primary_service or anomaly.service or "AWS Services"
-        what = f"[Local AI Fallback] On {anomaly.timestamp.strftime('%Y-%m-%d')}, {service_name} spend increased by ${anomaly.absolute_delta:.2f}."
+        what = f"Estimated Explanation (AI unavailable) On {anomaly.timestamp.strftime('%Y-%m-%d')}, {service_name} spend increased by ${anomaly.absolute_delta:.2f}."
         
         why = f"The investigation graph reveals a structured correlation leading back to {top_cand.title}."
         if top_cand.category in ["DEPLOYMENT", "EVENT"]:

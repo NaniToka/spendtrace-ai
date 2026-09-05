@@ -1,5 +1,6 @@
 import os
 from pydantic import BaseModel
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class AnomalyThresholds(BaseModel):
@@ -26,7 +27,9 @@ class RootCauseScoringWeights(BaseModel):
     CONFIDENCE_MEDIUM: float = 0.50
 
 
-class Settings(BaseModel):
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+
     PROJECT_NAME: str = "SpendTrace AI"
     TAGLINE: str = "Don't just detect cloud cost spikes. Explain why they happened."
     VERSION: str = "0.1.0"
