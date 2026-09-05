@@ -11,7 +11,7 @@ import { AnomalyItem, AnomalySummaryResponse } from './types/anomaly';
 // New components will be imported here as we build them
 // import { RootCauseSection } from './components/RootCauseSection';
 import { InvestigationGraphView } from './components/InvestigationGraphView';
-// import { FinancialImpactSection } from './components/FinancialImpactSection';
+import { FinancialImpactView } from './components/FinancialImpactView';
 
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('overview');
@@ -141,9 +141,11 @@ export const App: React.FC = () => {
           {activeTab === 'financial' && (
              <div className="page-view">
                <div className="glass-card p-6">
-                 <h2 className="text-xl font-bold mb-4">Financial Impact</h2>
-                 <p className="text-secondary">Detailed financial impact will appear here.</p>
-                 {/* Will render FinancialImpactSection here */}
+                 {selectedAnomalyId ? (
+                   <FinancialImpactView anomalyId={selectedAnomalyId} />
+                 ) : (
+                   <p className="text-secondary">Select an anomaly from the Anomalies tab to view its detailed financial impact.</p>
+                 )}
                </div>
              </div>
           )}
