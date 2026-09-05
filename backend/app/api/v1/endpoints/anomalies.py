@@ -135,4 +135,7 @@ def get_executive_investigation_summary(anomaly_id: str):
     Returns a unified executive dashboard summary for a given anomaly, combining
     root causes, graphs, explanations, and financial impact.
     """
-    return executive_summary_service.generate_summary(anomaly_id)
+    summary = executive_summary_service.generate_summary(anomaly_id)
+    if summary.status == "NOT_FOUND":
+        raise HTTPException(status_code=404, detail=f"Anomaly with ID '{anomaly_id}' not found.")
+    return summary

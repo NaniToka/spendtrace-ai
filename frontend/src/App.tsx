@@ -24,7 +24,9 @@ export const App: React.FC = () => {
     try {
       setLoading(true);
       const [healthData, billingData, anomalyData, summaryData] = await Promise.all([
-        fetchHealth().catch(() => null),
+        fetchHealth().catch(() => {
+          throw new Error('Backend connection failed. Please ensure the backend server is running.');
+        }),
         fetchBilling(billingFilters).catch(() => ({ total_count: 0, records: [] })),
         fetchAnomalies().catch(() => ({ total_count: 0, anomalies: [] })),
         fetchAnomaliesSummary().catch(() => null),
@@ -54,7 +56,7 @@ export const App: React.FC = () => {
         setSelectedAnomalyId(data.anomalies[0].anomaly_id);
       }
     } catch (err: any) {
-      console.error('Failed to filter anomalies:', err);
+      setError('Failed to filter anomalies. Please check backend connection.');
     }
   };
 
