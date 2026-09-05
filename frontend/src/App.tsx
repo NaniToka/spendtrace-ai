@@ -12,6 +12,7 @@ import { AnomalyItem, AnomalySummaryResponse } from './types/anomaly';
 // import { RootCauseSection } from './components/RootCauseSection';
 import { InvestigationGraphView } from './components/InvestigationGraphView';
 import { FinancialImpactView } from './components/FinancialImpactView';
+import { ReportsPage } from './components/ReportsPage';
 
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('overview');
@@ -167,11 +168,8 @@ export const App: React.FC = () => {
           )}
 
           {activeTab === 'reports' && (
-            <div className="glass-card p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="font-bold text-xl">Generated Reports</h2>
-              </div>
-              <p className="text-secondary">No reports generated yet.</p>
+            <div className="page-view">
+              <ReportsPage anomalies={anomalies} />
             </div>
           )}
 

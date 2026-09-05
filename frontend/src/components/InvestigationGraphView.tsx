@@ -46,8 +46,8 @@ export const InvestigationGraphView: React.FC<Props> = ({ anomalyId, graph }) =>
       const initNodes = res.nodes.map(n => ({
         ...n,
         pos: {
-          x: WIDTH / 2 + (Math.random() - 0.5) * 100,
-          y: HEIGHT / 2 + (Math.random() - 0.5) * 100,
+          x: WIDTH / 2 + (Math.random() - 0.5) * 400,
+          y: HEIGHT / 2 + (Math.random() - 0.5) * 400,
           vx: 0,
           vy: 0
         }
@@ -84,14 +84,14 @@ export const InvestigationGraphView: React.FC<Props> = ({ anomalyId, graph }) =>
   const runSimulation = (initNodes: NodeWithPosition[], edges: InvestigationEdge[]) => {
     let currentNodes = [...initNodes];
     let iteration = 0;
-    const MAX_ITERATIONS = 150;
+    const MAX_ITERATIONS = 200; // slightly more iterations to settle
     
-    // Physics constants
-    const REPULSION = 10000;
-    const ATTRACTION = 0.05;
+    // Physics constants (Adjusted for wider spread)
+    const REPULSION = 60000; // Much higher repulsion to prevent clumping
+    const ATTRACTION = 0.03;  // Slightly weaker spring
     const DAMPING = 0.5;
-    const CENTER_GRAVITY = 0.02;
-    const IDEAL_EDGE_LENGTH = 120;
+    const CENTER_GRAVITY = 0.005; // Weaker center gravity so nodes can spread out
+    const IDEAL_EDGE_LENGTH = 180; // Longer ideal edges
 
     const tick = () => {
       if (iteration >= MAX_ITERATIONS) return;
@@ -153,8 +153,8 @@ export const InvestigationGraphView: React.FC<Props> = ({ anomalyId, graph }) =>
         n.pos.y += n.pos.vy;
         
         // Keep in bounds
-        n.pos.x = Math.max(30, Math.min(WIDTH - 30, n.pos.x));
-        n.pos.y = Math.max(30, Math.min(HEIGHT - 30, n.pos.y));
+        n.pos.x = Math.max(50, Math.min(WIDTH - 50, n.pos.x));
+        n.pos.y = Math.max(50, Math.min(HEIGHT - 50, n.pos.y));
       });
       
       currentNodes = nextNodes;
