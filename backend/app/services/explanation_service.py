@@ -25,13 +25,14 @@ class ExplanationService:
         if not candidates or not graph.edges:
             return self._generate_empty_explanation(anomaly)
             
-        if self.api_key:
-            try:
-                return self._call_llm(anomaly, candidates, graph)
-            except Exception as e:
-                logger.error(f"LLM API failed: {e}. Falling back to deterministic generator.")
-                return self._generate_fallback(anomaly, candidates, graph)
-        else:
+        try:
+            return self._call_llm(anomaly, candidates, graph)
+        except Exception as e:
+            error_details = str(e)
+            if hasattr(e, 'response') and hasattr(e.response, 'text'):
+                error_details += f" | Response: {e.response.text}"
+            logger.error(f"LLM API failed: {error_details}. Falling back to deterministic generator.", exc_info=True)
+            print(f"\n--- LLM API EXACT ERROR ---\n{error_details}\n---------------------------\n")
             return self._generate_fallback(anomaly, candidates, graph)
             
     def _generate_empty_explanation(self, anomaly: AnomalyItemSchema) -> ExplanationResponseSchema:
